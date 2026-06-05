@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String       @id @default(uuid())
+  email        String       @unique
+  password     String
+  role         String       @default("STUDENT")
+  isSuperAdmin Boolean      @default(false)
+  createdAt    DateTime     @default(now())
+
+  submissions  Submission[]
+}
+
+model Exam {
+  id              String       @id @default(uuid())
+  title           String
+  description     String?
+  durationMinutes Int
+  startTime       DateTime?
+  endTime         DateTime?
+  upcomingDays    Int          @default(10)
+  createdById     String?
+  createdAt       DateTime     @default(now())
+  fullscreenChances Int        @default(5)
+
+  questions       Question[]
+  submissions     Submission[]
+}
+
+model Question {
+  id              String       @id @default(uuid())
+  examId          String
+  text            String
+  type            String
+  mediaUrl        String?
+  maxMarks        Float        @default(1)
+  createdAt       DateTime     @default(now())
+
+  exam            Exam         @relation(fields: [examId], references: [id], onDelete: Cascade)
+  options         Option[]
+
+  correctNumeric  Float?
+  correctText     String?
+
+  answers         SubmissionAnswer[]
+}
+
+model Option {
+  id          String   @id @default(uuid())
+  questionId  String
+  text        String
+  isCorrect   Boolean  @default(false)
+
+  question    Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+}
+
+model Submission {
+  id          String   @id @default(uuid())
+  examId      String
+  userId      String
+  score       Float?
+  maxScore    Float?
+  submittedAt DateTime @default(now())
+
+  exam        Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  answers     SubmissionAnswer[]
+}
+
+model SubmissionAnswer {
+  id             String     @id @default(uuid())
+  submissionId   String
+  questionId     String
+
+  selectedOptionIds String?
+  numericAnswer     Float?
+  textAnswer        String?
+  marksObtained     Float?
+
+  submission     Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  question       Question   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+}
