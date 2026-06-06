@@ -41,8 +41,13 @@ export default async function MonitorTestPage({ params }: { params: Promise<{ id
                   <span>Started: {new Date(sub.submittedAt).toLocaleTimeString()}</span>
                   <span>Time Left: {sub.timeLeft ? Math.floor(sub.timeLeft / 60) + 'm' : 'N/A'}</span>
                 </div>
-                <div className="mt-1 text-xs text-red-600 font-medium">
-                  Fullscreen Exits: {sub.fullscreenExitCount}
+                <div className="mt-1 flex justify-between items-center">
+                  <div className="text-xs text-red-600 font-medium">
+                    Fullscreen Exits: {sub.fullscreenExitCount}
+                  </div>
+                  <a href={`/dashboard/admin/tests/${resolvedParams.id}/monitor/${sub.id}`} target="_blank" rel="noopener noreferrer" className="text-xs bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700">
+                    View Live
+                  </a>
                 </div>
               </div>
             ))}

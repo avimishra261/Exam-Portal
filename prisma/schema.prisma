@@ -111,6 +111,7 @@ model AttemptOverride {
   userId          String
   allowedAttempts Int
   durationOverride Int?
+  endTimeOverride  DateTime?
   createdAt       DateTime @default(now())
 
   exam Exam @relation(fields: [examId], references: [id], onDelete: Cascade)

@@ -377,3 +377,97 @@ export async function banStudentAction(examId: string, userId: string, ban: bool
   revalidatePath('/dashboard/admin/tests');
   return { success: true };
 }
+
+export async function hideAndEditDatesAction(examId: string, isDraft: boolean, startTimeStr?: string | null, endTimeStr?: string | null) {
+  const user = await getUser();
+  if (!user || user.role !== 'ADMIN') return { error: 'Unauthorized' };
+
+  try {
+    const dataToUpdate: any = { isDraft };
+    if (startTimeStr !== undefined) dataToUpdate.startTime = startTimeStr ? new Date(startTimeStr) : null;
+    if (endTimeStr !== undefined) dataToUpdate.endTime = endTimeStr ? new Date(endTimeStr) : null;
+
+    await prisma.exam.update({
+      where: { id: examId },
+      data: dataToUpdate
+    });
+    revalidatePath('/dashboard/admin/tests');
+    return { success: true };
+  } catch (err: any) {
+    return { error: 'Failed to update test' };
+  }
+}
+
+export async function searchStudentsAction(query: string) {
+  const user = await getUser();
+  if (!user || user.role !== 'ADMIN') return { error: 'Unauthorized' };
+
+  if (!query || query.length < 2) return { students: [] };
+
+  try {
+    const students = await prisma.user.findMany({
+      where: {
+        role: 'STUDENT',
+        OR: [
+          { name: { contains: query } },
+          { email: { contains: query } }
+        ]
+      },
+      take: 10,
+      select: { id: true, name: true, email: true }
+    });
+    return { students };
+  } catch (err) {
+    return { error: 'Failed to search students' };
+  }
+}
+
+export async function reopenForStudentAction(examId: string, userId: string, endTimeStr?: string | null) {
+  const user = await getUser();
+  if (!user || user.role !== 'ADMIN') return { error: 'Unauthorized' };
+
+  try {
+    // 1. Delete their existing submission so they can start fresh
+    await prisma.submission.deleteMany({
+      where: { examId, userId }
+    });
+
+    // 2. Grant an attempt override with optionally a new extended deadline
+    const endTimeOverride = endTimeStr ? new Date(endTimeStr) : null;
+    
+    await prisma.attemptOverride.upsert({
+      where: { examId_userId: { examId, userId } },
+      update: { allowedAttempts: 1, endTimeOverride },
+      create: { examId, userId, allowedAttempts: 1, endTimeOverride }
+    });
+
+    revalidatePath('/dashboard/admin/tests');
+    return { success: true };
+  } catch (err: any) {
+    console.error('Reopen for student error:', err);
+    return { error: 'Failed to reopen test for the student' };
+  }
+}
+
+export async function getLiveSubmissionAction(submissionId: string) {
+  const user = await getUser();
+  if (!user || user.role !== 'ADMIN') return null;
+
+  try {
+    const sub = await prisma.submission.findUnique({
+      where: { id: submissionId },
+      include: {
+        user: { select: { name: true, email: true } },
+        exam: {
+          include: {
+            questions: { include: { options: true } }
+          }
+        },
+        answers: true
+      }
+    });
+    return sub;
+  } catch (err) {
+    return null;
+  }
+}
