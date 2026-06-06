@@ -124,17 +124,40 @@ Return ONLY a single number representing the marks awarded (e.g., 2.5, 0, ${maxM
     });
   }
 
-  await prisma.submission.create({
-    data: {
-      examId,
-      userId: user.id,
-      score: totalScore,
-      maxScore: maxScore,
-      answers: {
-        create: answersToCreate
-      }
-    }
+  const existingDraft = await prisma.submission.findFirst({
+    where: { examId, userId: user.id, status: 'IN_PROGRESS' }
   });
+
+  if (existingDraft) {
+    await prisma.submissionAnswer.deleteMany({
+      where: { submissionId: existingDraft.id }
+    });
+    
+    await prisma.submission.update({
+      where: { id: existingDraft.id },
+      data: {
+        score: totalScore,
+        maxScore: maxScore,
+        status: 'COMPLETED',
+        answers: {
+          create: answersToCreate
+        }
+      }
+    });
+  } else {
+    await prisma.submission.create({
+      data: {
+        examId,
+        userId: user.id,
+        score: totalScore,
+        maxScore: maxScore,
+        status: 'COMPLETED',
+        answers: {
+          create: answersToCreate
+        }
+      }
+    });
+  }
 
   redirect('/dashboard/analysis');
 }

@@ -245,7 +245,7 @@ export default function UserTable({
                           </select>
                           
                           {(() => {
-                            const isBanned = bannedStudents?.some(b => b.userId === user.id && b.examId === selectedExamId);
+                            const isBanned = bannedStudents?.some((b: any) => b.userId === user.id && b.examId === selectedExamId);
                             return isBanned ? (
                               <button onClick={() => handleBanToggle(user.id, false)} className="text-xs px-2 py-1 bg-green-100 text-green-700 font-bold rounded hover:bg-green-200">Unban</button>
                             ) : (

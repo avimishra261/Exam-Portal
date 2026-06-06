@@ -62,7 +62,12 @@ export default function AnalysisClient({ submission }: { submission: any }) {
     <div className="flex flex-col h-full font-sans">
       {/* TOP HEADER */}
       <header className="bg-blue-600 text-white p-3 flex justify-between items-center shadow-md z-10 shrink-0">
-        <div className="font-semibold text-lg">{submission.exam.title}</div>
+        <div className="flex items-center gap-4">
+          <a href="/dashboard/tests" className="flex items-center gap-1 bg-blue-700 hover:bg-blue-800 px-3 py-1.5 rounded-lg text-sm font-medium transition border border-blue-500">
+            <ChevronLeft className="w-4 h-4" /> Back
+          </a>
+          <div className="font-semibold text-lg">{submission.exam.title}</div>
+        </div>
         <div className="flex items-center gap-2 bg-blue-700 px-3 py-1.5 rounded-full text-sm font-medium border border-blue-500">
           <User className="w-4 h-4" />
           <span>{submission.user.name || submission.user.email}</span>
@@ -107,10 +112,11 @@ export default function AnalysisClient({ submission }: { submission: any }) {
             </div>
 
             {/* Options */}
-            {currentQuestion.type === 'MCQ' && (
+            {(currentQuestion.type === 'MCQ' || currentQuestion.type === 'MSQ') && (
               <div className="space-y-4 max-w-3xl">
                 {currentQuestion.options.map((opt: any, idx: number) => {
-                  const isSelected = currentAns?.selectedOptionIds === opt.id;
+                  const selectedIds = currentAns?.selectedOptionIds ? currentAns.selectedOptionIds.split(',') : [];
+                  const isSelected = selectedIds.includes(opt.id);
                   const isCorrect = opt.isCorrect;
                   const showAsCorrect = (showSolution || showAllSolutions) && isCorrect;
                   const showAsWrong = isSelected && !isCorrect;

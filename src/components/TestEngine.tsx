@@ -13,16 +13,19 @@ export default function TestEngine({
   exam, 
   initialAnswers = {},
   initialTimeLeft,
+  initialExitCount = 0,
   onSubmit 
 }: { 
   exam: ExamForTestEngine;
   initialAnswers?: Record<string, AnswerValue>;
   initialTimeLeft?: number;
+  initialExitCount?: number;
   onSubmit: (formData: FormData) => void;
 }) {
   const [started, setStarted] = useState(false);
   const [timeLeft, setTimeLeft] = useState(initialTimeLeft ?? (exam.durationMinutes * 60));
   const [currentQIndex, setCurrentQIndex] = useState(0);
+  const [exitCount, setExitCount] = useState(initialExitCount || 0);
   
   // Answers state
   const [answers, setAnswers] = useState<Record<string, AnswerValue>>(initialAnswers);
@@ -60,7 +63,7 @@ export default function TestEngine({
   useEffect(() => {
     if (!started) return;
     const handleVisibilityChange = () => {
-      if (document.hidden) {
+      if (document.hidden && !isSubmitting.current) {
         alert("Warning! You switched tabs/windows. This violates test rules.");
       }
     };
@@ -69,16 +72,30 @@ export default function TestEngine({
         pauseTest();
       }
     };
+    const preventContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+    };
     document.addEventListener("visibilitychange", handleVisibilityChange);
     document.addEventListener("fullscreenchange", handleFullscreenChange);
+    document.addEventListener("contextmenu", preventContextMenu);
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      document.removeEventListener("contextmenu", preventContextMenu);
     };
-  }, [started, answers, timeLeft]);
+  }, [started, answers, timeLeft, exitCount]);
 
   const pauseTest = async () => {
-    alert("You exited fullscreen mode. Your test has been paused. You can continue it from the dashboard.");
+    const newExitCount = exitCount + 1;
+    setExitCount(newExitCount);
+    
+    if (newExitCount > exam.fullscreenChances) {
+      alert(`You have exceeded the allowed fullscreen exits (${exam.fullscreenChances}). Your test will be auto-submitted.`);
+      handleFinalSubmit();
+      return;
+    }
+
+    alert(`You exited fullscreen mode. Your test has been paused. Exits: ${newExitCount}/${exam.fullscreenChances}. You can continue it from the dashboard.`);
     try {
       await fetch('/api/tests/pause', {
         method: 'POST',
@@ -192,7 +209,7 @@ export default function TestEngine({
           <ul className="list-disc pl-5 space-y-2 mt-4">
             <li>The test will open in <strong>Fullscreen mode</strong>.</li>
             <li>Switching tabs, opening other windows, or exiting fullscreen will result in a warning.</li>
-            <li>You are allowed exactly <strong>{exam.fullscreenChances} exits</strong>. Exceeding this limit will auto-submit your test.</li>
+            <li>You have currently used <strong>{exitCount} / {exam.fullscreenChances} exits</strong>. Exceeding this limit will auto-submit your test.</li>
           </ul>
         </div>
         <button onClick={startTest} className="mt-8 px-8 py-3 bg-[#1e73be] hover:bg-[#155a96] text-white font-bold rounded-lg shadow-sm transition w-full">
@@ -222,7 +239,15 @@ export default function TestEngine({
     }
   };
   return (
-    <div ref={containerRef} className="flex flex-col h-screen bg-white text-gray-900 select-none font-sans overflow-hidden text-sm">
+    <>
+      <div className="lg:hidden fixed inset-0 z-[100] flex items-center justify-center p-8 text-center bg-gray-50">
+        <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 max-w-sm">
+          <h2 className="text-xl font-bold text-red-600 mb-2">Desktop Required</h2>
+          <p className="text-gray-600 mb-6">This test can only be taken on a desktop or laptop computer. Please switch devices to continue.</p>
+          <a href="/dashboard/tests" className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700">Back to Dashboard</a>
+        </div>
+      </div>
+      <div ref={containerRef} className="hidden lg:flex flex-col h-screen bg-white text-gray-900 select-none font-sans overflow-hidden text-sm">
       
       {/* Top Banner */}
       <div className="h-14 flex justify-center items-center border-b border-gray-300 relative bg-white">
@@ -404,5 +429,6 @@ export default function TestEngine({
 
       </div>
     </div>
+    </>
   );
 }

@@ -99,6 +99,7 @@ export default async function TakeTestPage({ params }: { params: Promise<{ id: s
         exam={exam as any} 
         initialAnswers={initialAnswers}
         initialTimeLeft={draftSubmission?.timeLeft ?? undefined}
+        initialExitCount={draftSubmission?.fullscreenExitCount ?? 0}
         onSubmit={submitAction} 
       />
     </div>
