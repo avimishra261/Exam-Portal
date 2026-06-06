@@ -101,7 +101,8 @@ export async function POST(req: Request) {
       } else if (q.type === 'MSQ' && Array.isArray(val)) {
         selectedOptionIds = val.join(',');
       } else if (q.type === 'NAT') {
-        numericAnswer = parseFloat(val as string);
+        const parsed = parseFloat(val as string);
+        numericAnswer = isNaN(parsed) ? null : parsed;
       } else if (q.type === 'DESCRIPTIVE') {
         textAnswer = val as string;
       }

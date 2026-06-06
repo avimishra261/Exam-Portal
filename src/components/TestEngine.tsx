@@ -66,12 +66,12 @@ export default function TestEngine({
     if (!started) return;
     const handleVisibilityChange = () => {
       if (document.hidden && !isSubmitting.current) {
-        alert("Warning! You switched tabs/windows. This violates test rules.");
+        pauseTest(true);
       }
     };
     const handleFullscreenChange = () => {
       if (!document.fullscreenElement && !isSubmitting.current) {
-        pauseTest();
+        pauseTest(false);
       }
     };
     const preventContextMenu = (e: MouseEvent) => {
@@ -87,17 +87,18 @@ export default function TestEngine({
     };
   }, [started, answers, timeLeft, exitCount]);
 
-  const pauseTest = async () => {
+  const pauseTest = async (isTabSwitch = false) => {
     const newExitCount = exitCount + 1;
     setExitCount(newExitCount);
     
     if (newExitCount > exam.fullscreenChances) {
-      alert(`You have exceeded the allowed fullscreen exits (${exam.fullscreenChances}). Your test will be auto-submitted.`);
+      alert(`You have exceeded the allowed warnings (${exam.fullscreenChances}). Your test will be auto-submitted.`);
       handleFinalSubmit();
       return;
     }
 
-    alert(`You exited fullscreen mode. Your test has been paused. Exits: ${newExitCount}/${exam.fullscreenChances}. You can continue it from the dashboard.`);
+    const reason = isTabSwitch ? "switched tabs/windows" : "exited fullscreen mode";
+    alert(`You ${reason}. Your test has been paused. Warnings: ${newExitCount}/${exam.fullscreenChances}. You can continue it from the dashboard.`);
     try {
       await fetch('/api/tests/pause', {
         method: 'POST',
@@ -118,8 +119,8 @@ export default function TestEngine({
 
   const startTest = async () => {
     try {
-      if (containerRef.current?.requestFullscreen) {
-        await containerRef.current.requestFullscreen();
+      if (document.documentElement.requestFullscreen) {
+        await document.documentElement.requestFullscreen();
       }
       setStarted(true);
     } catch (e) {
@@ -215,7 +216,7 @@ export default function TestEngine({
           </ul>
         </div>
         <button onClick={startTest} className="mt-8 px-8 py-3 bg-[#1e73be] hover:bg-[#155a96] text-white font-bold rounded-lg shadow-sm transition w-full">
-          I Understand, Start Test
+          {Object.keys(answers).length > 0 ? "I Understand, Continue Test" : "I Understand, Start Test"}
         </button>
       </div>
     );
