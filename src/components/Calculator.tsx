@@ -12,40 +12,44 @@ export default function Calculator({ onClose }: { onClose: () => void }) {
   const [position, setPosition] = useState({ x: 100, y: 100 });
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef<{ startX: number; startY: number }>({ startX: 0, startY: 0 });
-  const calcRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Initial position to center-right
     if (typeof window !== 'undefined') {
-      setPosition({ x: window.innerWidth - 450, y: 100 });
+      setPosition({ x: window.innerWidth - 500, y: 100 });
     }
   }, []);
 
-  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isDragging) {
+        setPosition({
+          x: e.clientX - dragRef.current.startX,
+          y: e.clientY - dragRef.current.startY
+        });
+      }
+    };
+    
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging]);
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     setIsDragging(true);
     dragRef.current = {
       startX: e.clientX - position.x,
       startY: e.clientY - position.y
     };
-    if (calcRef.current) {
-      calcRef.current.setPointerCapture(e.pointerId);
-    }
-  };
-
-  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (isDragging) {
-      setPosition({
-        x: e.clientX - dragRef.current.startX,
-        y: e.clientY - dragRef.current.startY
-      });
-    }
-  };
-
-  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    setIsDragging(false);
-    if (calcRef.current) {
-      calcRef.current.releasePointerCapture(e.pointerId);
-    }
   };
 
   const appendNum = (num: string) => {
@@ -111,49 +115,45 @@ export default function Calculator({ onClose }: { onClose: () => void }) {
     }
   };
 
-  const btnClass = "bg-[#f0f0f0] border border-[#d4d4d4] text-[#333] hover:bg-[#e0e0e0] text-xs py-1.5 px-1 rounded-sm active:bg-[#ccc]";
-  const numClass = "bg-[#f8f8f8] border border-[#d4d4d4] text-black font-bold hover:bg-[#eaeaea] text-sm py-1.5 px-1 rounded-sm active:bg-[#ccc]";
-  const opClass = "bg-[#e5e5e5] border border-[#d4d4d4] text-black font-bold hover:bg-[#d5d5d5] text-sm py-1.5 px-1 rounded-sm active:bg-[#ccc]";
+  const btnClass = "bg-[#f5f5f5] border border-[#ccc] text-[#333] hover:bg-[#e6e6e6] text-xs py-1.5 px-1 font-semibold rounded-sm active:bg-[#d4d4d4] transition-colors shadow-sm";
+  const numClass = "bg-[#ffffff] border border-[#ccc] text-black font-bold hover:bg-[#e6e6e6] text-sm py-1.5 px-1 rounded-sm active:bg-[#d4d4d4] transition-colors shadow-sm";
+  const opClass = "bg-[#f5f5f5] border border-[#ccc] text-black font-bold hover:bg-[#e6e6e6] text-sm py-1.5 px-1 rounded-sm active:bg-[#d4d4d4] transition-colors shadow-sm";
 
   return (
     <div 
-      ref={calcRef}
-      className="fixed z-50 bg-[#e8e8e8] shadow-[0_5px_15px_rgba(0,0,0,0.5)] border border-[#a0a0a0] w-[420px] touch-none select-none rounded font-sans"
+      className="fixed z-50 bg-[#e8e8e8] shadow-[0_5px_15px_rgba(0,0,0,0.5)] border border-[#a0a0a0] w-[450px] select-none rounded-t font-sans"
       style={{ left: `${position.x}px`, top: `${position.y}px` }}
     >
       {/* Header */}
       <div 
-        className="bg-[#2d2d2d] text-white px-3 py-1.5 flex justify-between items-center cursor-move rounded-t"
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
+        className="bg-[#337ab7] text-white px-3 py-2 flex justify-between items-center cursor-move rounded-t"
+        onMouseDown={handleMouseDown}
       >
-        <span className="font-bold text-sm tracking-wide text-[#ddd]">Calculator</span>
-        <button onClick={(e) => { e.stopPropagation(); onClose(); }} className="text-white hover:text-red-400 font-bold px-1 text-lg leading-none pointer-events-auto">×</button>
+        <span className="font-bold text-sm tracking-wide">Calculator</span>
+        <button onClick={(e) => { e.stopPropagation(); onClose(); }} className="text-white hover:text-red-200 font-bold px-2 text-lg leading-none cursor-pointer">×</button>
       </div>
 
-      <div className="p-3">
+      <div className="p-3 bg-[#d9e4f1]">
         {/* Screen */}
-        <div className="bg-white border border-[#b0b0b0] rounded mb-3 p-1">
-          <div className="text-right text-[#888] text-[11px] h-4 leading-tight px-1 font-mono">{equation}</div>
-          <div className="text-right text-2xl font-mono text-black font-semibold h-8 leading-tight px-1 overflow-hidden">{display}</div>
+        <div className="bg-[#c3d9ff] border border-[#8faad9] rounded-sm mb-3 p-1 shadow-inner">
+          <div className="text-right text-[#555] text-xs h-4 leading-tight px-1 font-mono">{equation}</div>
+          <div className="text-right text-2xl font-mono text-black font-bold h-8 leading-tight px-1 overflow-hidden">{display}</div>
         </div>
 
         {/* Radio buttons */}
-        <div className="flex gap-4 mb-3 px-1 text-xs text-[#333]">
+        <div className="flex gap-4 mb-3 px-1 text-xs font-semibold text-[#333]">
           <label className="flex items-center gap-1 cursor-pointer">
-            <input type="radio" name="angle" checked={!isRad} onChange={() => setIsRad(false)} className="w-3 h-3" /> Deg
+            <input type="radio" name="angle" checked={!isRad} onChange={() => setIsRad(false)} className="w-3 h-3 cursor-pointer" /> Deg
           </label>
           <label className="flex items-center gap-1 cursor-pointer">
-            <input type="radio" name="angle" checked={isRad} onChange={() => setIsRad(true)} className="w-3 h-3" /> Rad
+            <input type="radio" name="angle" checked={isRad} onChange={() => setIsRad(true)} className="w-3 h-3 cursor-pointer" /> Rad
           </label>
         </div>
 
         {/* Keypad Layout */}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-3">
           {/* Left Scientific Panel */}
-          <div className="grid grid-cols-3 gap-1">
+          <div className="grid grid-cols-3 gap-1.5">
             <button className={btnClass}>MC</button>
             <button className={btnClass} onClick={() => setDisplay(memory.toString())}>MR</button>
             <button className={btnClass} onClick={() => setMemory(parseFloat(display))}>MS</button>
@@ -187,7 +187,7 @@ export default function Calculator({ onClose }: { onClose: () => void }) {
           </div>
 
           {/* Right Numpad Panel */}
-          <div className="grid grid-cols-4 gap-1">
+          <div className="grid grid-cols-4 gap-1.5">
             <button className={btnClass} onClick={() => setDisplay('0')}>CE</button>
             <button className={btnClass} onClick={() => { setDisplay('0'); setEquation(''); }}>C</button>
             <button className={btnClass} onClick={handleSign}>±</button>

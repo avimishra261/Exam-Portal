@@ -16,7 +16,6 @@ export default function TestEngine({
   onSubmit: (formData: FormData) => void;
 }) {
   const [started, setStarted] = useState(false);
-  const [fullscreenExits, setFullscreenExits] = useState(0);
   const [timeLeft, setTimeLeft] = useState(exam.durationMinutes * 60);
   const [currentQIndex, setCurrentQIndex] = useState(0);
   
@@ -35,33 +34,29 @@ export default function TestEngine({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const isSubmitting = useRef(false);
-  const fullscreenExitsRef = useRef(0);
 
   useEffect(() => {
     if (!started) return;
-    if (timeLeft <= 0 || fullscreenExits >= exam.fullscreenChances) {
+    if (timeLeft <= 0) {
       handleFinalSubmit();
     }
     const timer = setInterval(() => {
       setTimeLeft(prev => prev - 1);
     }, 1000);
     return () => clearInterval(timer);
-  }, [started, timeLeft, fullscreenExits, exam.fullscreenChances]);
+  }, [started, timeLeft]);
 
   useEffect(() => {
     if (!started) return;
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        fullscreenExitsRef.current += 1;
-        setFullscreenExits(fullscreenExitsRef.current);
-        alert(`Warning! You switched tabs/windows. Exits left: ${exam.fullscreenChances - fullscreenExitsRef.current}`);
+        alert("Warning! You switched tabs/windows. This violates test rules.");
       }
     };
     const handleFullscreenChange = () => {
       if (!document.fullscreenElement) {
-        fullscreenExitsRef.current += 1;
-        setFullscreenExits(fullscreenExitsRef.current);
-        alert(`Warning! You exited fullscreen. Exits left: ${exam.fullscreenChances - fullscreenExitsRef.current}`);
+        alert("You exited fullscreen mode. Your test has been submitted automatically.");
+        handleFinalSubmit();
       }
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
@@ -70,12 +65,12 @@ export default function TestEngine({
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
     };
-  }, [started, exam.fullscreenChances]);
+  }, [started]);
 
   const startTest = async () => {
     try {
-      if (document.documentElement.requestFullscreen) {
-        await document.documentElement.requestFullscreen();
+      if (containerRef.current?.requestFullscreen) {
+        await containerRef.current.requestFullscreen();
       }
       setStarted(true);
     } catch (e) {
@@ -196,9 +191,8 @@ export default function TestEngine({
       default: return notVisitedClass;
     }
   };
-
   return (
-    <div className="flex flex-col h-screen bg-white text-gray-900 select-none font-sans overflow-hidden text-sm">
+    <div ref={containerRef} className="flex flex-col h-screen bg-white text-gray-900 select-none font-sans overflow-hidden text-sm">
       
       {/* Top Banner */}
       <div className="h-14 flex justify-center items-center border-b border-gray-300 relative bg-white">
