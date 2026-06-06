@@ -16,13 +16,13 @@ export default function Calculator({ onClose }: CalculatorProps) {
   const [prevValue, setPrevValue] = useState<number | null>(null);
 
   // Dragging state
-  const [position, setPosition] = useState({ x: 100, y: 100 });
+  const [position, setPosition] = useState({ x: 200, y: 150 });
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef<{ startX: number; startY: number }>({ startX: 0, startY: 0 });
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setPosition({ x: window.innerWidth - 600, y: 100 });
+      setPosition({ x: window.innerWidth / 2 - 250, y: window.innerHeight / 2 - 200 });
     }
   }, []);
 
@@ -36,15 +36,12 @@ export default function Calculator({ onClose }: CalculatorProps) {
       }
     };
 
-    const handleMouseUp = () => {
-      setIsDragging(false);
-    };
+    const handleMouseUp = () => setIsDragging(false);
 
     if (isDragging) {
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
     }
-
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
@@ -52,12 +49,9 @@ export default function Calculator({ onClose }: CalculatorProps) {
   }, [isDragging]);
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target instanceof HTMLButtonElement) return; // Don't drag if clicking buttons
+    if (e.target instanceof HTMLButtonElement) return;
     setIsDragging(true);
-    dragRef.current = {
-      startX: e.clientX - position.x,
-      startY: e.clientY - position.y
-    };
+    dragRef.current = { startX: e.clientX - position.x, startY: e.clientY - position.y };
   };
 
   const parseValue = (val: string) => {
@@ -92,9 +86,7 @@ export default function Calculator({ onClose }: CalculatorProps) {
     }
   };
 
-  const clearEntry = () => {
-    setDisplay('0');
-  };
+  const clearEntry = () => setDisplay('0');
 
   const clearAll = () => {
     setDisplay('0');
@@ -168,127 +160,144 @@ export default function Calculator({ onClose }: CalculatorProps) {
     return res;
   };
 
-  // Conversions for trig functions
   const toRad = (val: number) => isRad ? val : val * (Math.PI / 180);
   const fromRad = (val: number) => isRad ? val : val * (180 / Math.PI);
 
-  const btnSciClass = "bg-gradient-to-b from-[#f9f9f9] to-[#e4e4e4] border border-[#a0a0a0] text-[#000] hover:from-[#e4e4e4] hover:to-[#d0d0d0] text-sm py-1.5 px-0.5 font-bold rounded shadow-sm cursor-pointer";
-  const btnNumClass = "bg-gradient-to-b from-[#ffffff] to-[#f0f0f0] border border-[#a0a0a0] text-[#000] font-bold hover:from-[#f0f0f0] hover:to-[#e0e0e0] text-sm py-1.5 px-0.5 rounded shadow-sm cursor-pointer";
-  const btnOpClass = "bg-gradient-to-b from-[#e6e6e6] to-[#d4d4d4] border border-[#a0a0a0] text-[#000] font-bold hover:from-[#d4d4d4] hover:to-[#c0c0c0] text-sm py-1.5 px-0.5 rounded shadow-sm cursor-pointer";
-  const btnRedClass = "bg-gradient-to-b from-[#fce4e4] to-[#f8caca] border border-[#a0a0a0] text-[#d00000] font-bold hover:from-[#f8caca] hover:to-[#f0a0a0] text-sm py-1.5 px-0.5 rounded shadow-sm cursor-pointer";
+  const btnClass = "bg-[#f5f5f5] hover:bg-[#e0e0e0] border border-[#ccc] text-[#333] text-[12px] font-sans h-8 flex items-center justify-center rounded-sm shadow-sm cursor-pointer select-none";
+  const numClass = "bg-white hover:bg-[#e0e0e0] border border-[#ccc] text-[#333] font-bold text-[13px] font-sans h-8 flex items-center justify-center rounded-sm shadow-sm cursor-pointer select-none";
+  const redClass = "bg-[#e74c3c] hover:bg-[#c0392b] border border-[#c0392b] text-white text-[12px] font-sans h-8 flex items-center justify-center rounded-sm shadow-sm cursor-pointer select-none";
+  const greenClass = "bg-[#2ecc71] hover:bg-[#27ae60] border border-[#27ae60] text-white text-[16px] font-bold font-sans h-[70px] flex items-center justify-center rounded-sm shadow-sm cursor-pointer select-none absolute right-0 bottom-0 w-[42px]";
 
   return (
     <div
-      className="fixed z-50 bg-[#c0d0e0] shadow-2xl border-2 border-[#8090a0] w-[560px] select-none rounded font-sans"
+      className="fixed z-[9999] bg-[#dcdcdc] border border-[#888] rounded-t-lg shadow-2xl w-[520px] font-sans"
       style={{ left: `${position.x}px`, top: `${position.y}px` }}
     >
       {/* Header */}
       <div
-        className="bg-gradient-to-b from-[#4080c0] to-[#2060a0] text-white px-3 py-1.5 flex justify-between items-center cursor-move rounded-t border-b border-[#204060]"
+        className="bg-[#4b8df8] text-white px-3 py-2 flex justify-between items-center cursor-move rounded-t-lg select-none"
         onMouseDown={handleMouseDown}
       >
-        <span className="font-bold text-[13px] tracking-wide">Scientific Calculator</span>
-        <button 
-          onClick={(e) => { e.stopPropagation(); onClose(); }} 
-          className="text-white hover:text-red-300 font-bold px-1 text-lg leading-none cursor-pointer"
-        >
-          ×
-        </button>
+        <span className="font-semibold text-[13px]">Scientific Calculator</span>
+        <div className="flex gap-2 items-center">
+          <button className="bg-[#669ff9] hover:bg-[#80b0ff] text-white text-xs px-2 py-0.5 rounded shadow-sm border border-[#508cf0]">Help</button>
+          <button className="text-white hover:text-gray-200 font-bold px-1">—</button>
+          <button onClick={onClose} className="text-white hover:text-red-300 font-bold px-1 text-lg leading-none">×</button>
+        </div>
       </div>
 
-      <div className="p-3">
-        {/* Screen */}
-        <div className="bg-[#f0f4f8] border-2 border-[#a0b0c0] rounded mb-3 p-1 shadow-inner relative">
-          <div className="text-right text-[#666] text-sm h-5 leading-tight px-2 font-mono break-all overflow-hidden whitespace-nowrap">{equation}</div>
-          <div className="text-right text-3xl font-mono text-black font-bold h-10 leading-tight px-2 overflow-hidden whitespace-nowrap">{display}</div>
-          {memory !== 0 && <div className="absolute left-2 bottom-2 text-xs font-bold text-gray-500">M</div>}
+      <div className="p-3 bg-[#dcdcdc] rounded-b-lg shadow-inner">
+        {/* Displays */}
+        <div className="bg-white border border-[#aaa] rounded-sm p-1 mb-1 h-6 flex items-center justify-end overflow-hidden shadow-inner">
+          <span className="text-[#666] text-[11px] truncate">{equation}</span>
+        </div>
+        <div className="bg-white border border-[#aaa] rounded-sm p-1 mb-3 h-8 flex items-center justify-end overflow-hidden shadow-inner">
+          <span className="text-black text-[16px] font-bold truncate">{display}</span>
         </div>
 
-        {/* Radio buttons */}
-        <div className="flex gap-4 mb-3 px-1 text-sm font-bold text-[#333]">
-          <label className="flex items-center gap-1.5 cursor-pointer">
-            <input type="radio" name="angle" checked={!isRad} onChange={() => setIsRad(false)} className="cursor-pointer" /> Deg
-          </label>
-          <label className="flex items-center gap-1.5 cursor-pointer">
-            <input type="radio" name="angle" checked={isRad} onChange={() => setIsRad(true)} className="cursor-pointer" /> Rad
-          </label>
+        {/* Controls Row */}
+        <div className="flex items-center gap-4 mb-3">
+          <div className="flex items-center gap-1">
+            <button className={btnClass + " w-[42px]"}>mod</button>
+          </div>
+          <div className="flex items-center gap-2 bg-[#dcdcdc] px-1 rounded border border-transparent">
+            <label className="flex items-center gap-1 text-[11px] text-gray-700 font-medium cursor-pointer">
+              <input type="radio" checked={!isRad} onChange={() => setIsRad(false)} className="w-3 h-3 text-[#4b8df8]" /> Deg
+            </label>
+            <label className="flex items-center gap-1 text-[11px] text-gray-700 font-medium cursor-pointer">
+              <input type="radio" checked={isRad} onChange={() => setIsRad(true)} className="w-3 h-3 text-[#4b8df8]" /> Rad
+            </label>
+          </div>
+          <div className="flex gap-[6px] ml-auto">
+            <button className={btnClass + " w-[38px]"} onClick={() => setMemory(0)}>MC</button>
+            <button className={btnClass + " w-[38px]"} onClick={() => { setDisplay(memory.toString()); setIsNewValue(true); }}>MR</button>
+            <button className={btnClass + " w-[38px]"} onClick={() => setMemory(parseValue(display))}>MS</button>
+            <button className={btnClass + " w-[38px]"} onClick={() => setMemory(memory + parseValue(display))}>M+</button>
+            <button className={btnClass + " w-[38px]"} onClick={() => setMemory(memory - parseValue(display))}>M-</button>
+          </div>
         </div>
 
-        {/* Layout */}
-        <div className="grid grid-cols-2 gap-4">
-          
-          {/* Left Panel - Scientific */}
-          <div className="grid grid-cols-4 gap-1.5">
-            <button className={btnSciClass} onClick={() => applyMath('sin', 'sin', (x) => Math.sin(toRad(x)))}>sin</button>
-            <button className={btnSciClass} onClick={() => applyMath('cos', 'cos', (x) => Math.cos(toRad(x)))}>cos</button>
-            <button className={btnSciClass} onClick={() => applyMath('tan', 'tan', (x) => Math.tan(toRad(x)))}>tan</button>
-            <button className={btnSciClass} onClick={() => applyMath('x^2', 'sqr', (x) => x * x)}>x²</button>
+        {/* Main Grid */}
+        <div className="flex gap-2 relative">
+          {/* Functions Grid (Left) */}
+          <div className="grid grid-cols-6 gap-[6px] w-[280px]">
+            {/* Row 1 */}
+            <button className={btnClass} onClick={() => applyMath('sinh', 'sinh', Math.sinh)}>sinh</button>
+            <button className={btnClass} onClick={() => applyMath('cosh', 'cosh', Math.cosh)}>cosh</button>
+            <button className={btnClass} onClick={() => applyMath('tanh', 'tanh', Math.tanh)}>tanh</button>
+            <button className={btnClass} onClick={() => applyMath('Exp', 'Exp', Math.exp)}>Exp</button>
+            <button className={btnClass} onClick={() => { handleNum('('); setIsNewValue(false); }}>(</button>
+            <button className={btnClass} onClick={() => { handleNum(')'); setIsNewValue(false); }}>)</button>
+            
+            {/* Row 2 */}
+            <button className={btnClass} onClick={() => applyMath('asinh', 'asinh', Math.asinh)}>sinh⁻¹</button>
+            <button className={btnClass} onClick={() => applyMath('acosh', 'acosh', Math.acosh)}>cosh⁻¹</button>
+            <button className={btnClass} onClick={() => applyMath('atanh', 'atanh', Math.atanh)}>tanh⁻¹</button>
+            <button className={btnClass} onClick={() => applyMath('log2', 'log2', Math.log2)}>log₂x</button>
+            <button className={btnClass} onClick={() => applyMath('ln', 'ln', Math.log)}>ln</button>
+            <button className={btnClass} onClick={() => applyMath('log10', 'log', Math.log10)}>log</button>
 
-            <button className={btnSciClass} onClick={() => applyMath('sinh', 'sinh', Math.sinh)}>sinh</button>
-            <button className={btnSciClass} onClick={() => applyMath('cosh', 'cosh', Math.cosh)}>cosh</button>
-            <button className={btnSciClass} onClick={() => applyMath('tanh', 'tanh', Math.tanh)}>tanh</button>
-            <button className={btnSciClass} onClick={() => applyMath('x^3', 'cube', (x) => x * x * x)}>x³</button>
+            {/* Row 3 */}
+            <button className={btnClass} onClick={() => { setDisplay(Math.PI.toString()); setIsNewValue(true); }}>π</button>
+            <button className={btnClass} onClick={() => { setDisplay(Math.E.toString()); setIsNewValue(true); }}>e</button>
+            <button className={btnClass} onClick={() => applyMath('fact', 'fact', factorial)}>n!</button>
+            <button className={btnClass} onClick={() => handleOp('yroot')}>y√x</button>
+            <button className={btnClass} onClick={() => applyMath('exp', 'e^', Math.exp)}>eˣ</button>
+            <button className={btnClass} onClick={() => applyMath('10^x', '10^', x => Math.pow(10, x))}>10ˣ</button>
 
-            <button className={btnSciClass} onClick={() => applyMath('asin', 'asin', (x) => fromRad(Math.asin(x)))}>sin⁻¹</button>
-            <button className={btnSciClass} onClick={() => applyMath('acos', 'acos', (x) => fromRad(Math.acos(x)))}>cos⁻¹</button>
-            <button className={btnSciClass} onClick={() => applyMath('atan', 'atan', (x) => fromRad(Math.atan(x)))}>tan⁻¹</button>
-            <button className={btnSciClass} onClick={() => handleOp('y^x')}>xʸ</button>
+            {/* Row 4 */}
+            <button className={btnClass} onClick={() => applyMath('sin', 'sin', x => Math.sin(toRad(x)))}>sin</button>
+            <button className={btnClass} onClick={() => applyMath('cos', 'cos', x => Math.cos(toRad(x)))}>cos</button>
+            <button className={btnClass} onClick={() => applyMath('tan', 'tan', x => Math.tan(toRad(x)))}>tan</button>
+            <button className={btnClass} onClick={() => handleOp('y^x')}>xʸ</button>
+            <button className={btnClass} onClick={() => applyMath('x^3', 'cube', x => Math.pow(x, 3))}>x³</button>
+            <button className={btnClass} onClick={() => applyMath('x^2', 'sqr', x => Math.pow(x, 2))}>x²</button>
 
-            <button className={btnSciClass} onClick={() => applyMath('10^x', '10^', (x) => Math.pow(10, x))}>10ˣ</button>
-            <button className={btnSciClass} onClick={() => applyMath('e^x', 'e^', Math.exp)}>eˣ</button>
-            <button className={btnSciClass} onClick={() => applyMath('1/x', '1/', (x) => 1 / x)}>1/x</button>
-            <button className={btnSciClass} onClick={() => applyMath('sqrt', 'sqrt', Math.sqrt)}>√</button>
-
-            <button className={btnSciClass} onClick={() => applyMath('log', 'log', Math.log10)}>log</button>
-            <button className={btnSciClass} onClick={() => applyMath('ln', 'ln', Math.log)}>ln</button>
-            <button className={btnSciClass} onClick={() => { setDisplay(Math.E.toString()); setIsNewValue(true); }}>e</button>
-            <button className={btnSciClass} onClick={() => applyMath('cbrt', 'cbrt', Math.cbrt)}>³√</button>
-
-            <button className={btnSciClass} onClick={() => applyMath('n!', 'fact', factorial)}>n!</button>
-            <button className={btnSciClass} onClick={() => { setDisplay(Math.PI.toString()); setIsNewValue(true); }}>π</button>
-            <button className={btnSciClass} onClick={() => handleOp('yroot')}>ʸ√x</button>
-            <button className={btnSciClass} onClick={() => applyMath('abs', 'abs', Math.abs)}>|x|</button>
+            {/* Row 5 */}
+            <button className={btnClass} onClick={() => applyMath('asin', 'asin', x => fromRad(Math.asin(x)))}>sin⁻¹</button>
+            <button className={btnClass} onClick={() => applyMath('acos', 'acos', x => fromRad(Math.acos(x)))}>cos⁻¹</button>
+            <button className={btnClass} onClick={() => applyMath('atan', 'atan', x => fromRad(Math.atan(x)))}>tan⁻¹</button>
+            <button className={btnClass} onClick={() => applyMath('sqrt', 'sqrt', Math.sqrt)}>√x</button>
+            <button className={btnClass} onClick={() => applyMath('cbrt', 'cbrt', Math.cbrt)}>³√x</button>
+            <button className={btnClass} onClick={() => applyMath('abs', 'abs', Math.abs)}>|x|</button>
           </div>
 
-          {/* Right Panel - Numpad */}
-          <div className="grid grid-cols-5 gap-1.5">
-            <button className={btnSciClass} onClick={() => setMemory(0)}>MC</button>
-            <button className={btnSciClass} onClick={() => { setDisplay(memory.toString()); setIsNewValue(true); }}>MR</button>
-            <button className={btnSciClass} onClick={() => setMemory(parseValue(display))}>MS</button>
-            <button className={btnSciClass} onClick={() => setMemory(memory + parseValue(display))}>M+</button>
-            <button className={btnSciClass} onClick={() => setMemory(memory - parseValue(display))}>M-</button>
+          {/* Numpad & Operators (Right) */}
+          <div className="grid grid-cols-5 gap-[6px] w-[210px] relative">
+            {/* Top row overrides: Backspace, C, +/-, sqrt */}
+            <button className={redClass + " col-span-2"} onClick={handleBackspace}>←</button>
+            <button className={redClass + " col-span-1"} onClick={clearAll}>C</button>
+            <button className={redClass + " col-span-1"} onClick={handleSign}>±</button>
+            <button className={btnClass} onClick={() => applyMath('sqrt', 'sqrt', Math.sqrt)}>√</button>
 
-            <button className={btnRedClass} onClick={handleBackspace}>←</button>
-            <button className={btnRedClass} onClick={clearEntry}>CE</button>
-            <button className={btnRedClass} onClick={clearAll}>C</button>
-            <button className={btnOpClass} onClick={handleSign}>±</button>
-            <button className={btnOpClass} onClick={() => handleOp('mod')}>mod</button>
+            {/* Row 2 */}
+            <button className={numClass} onClick={() => handleNum('7')}>7</button>
+            <button className={numClass} onClick={() => handleNum('8')}>8</button>
+            <button className={numClass} onClick={() => handleNum('9')}>9</button>
+            <button className={btnClass} onClick={() => handleOp('/')}>/</button>
+            <button className={btnClass} onClick={() => handleOp('mod')}>%</button>
 
-            <button className={btnNumClass} onClick={() => handleNum('7')}>7</button>
-            <button className={btnNumClass} onClick={() => handleNum('8')}>8</button>
-            <button className={btnNumClass} onClick={() => handleNum('9')}>9</button>
-            <button className={btnOpClass} onClick={() => handleOp('/')}>/</button>
-            <button className={btnOpClass} onClick={() => applyMath('percent', '%', (x) => x / 100)}>%</button>
+            {/* Row 3 */}
+            <button className={numClass} onClick={() => handleNum('4')}>4</button>
+            <button className={numClass} onClick={() => handleNum('5')}>5</button>
+            <button className={numClass} onClick={() => handleNum('6')}>6</button>
+            <button className={btnClass} onClick={() => handleOp('*')}>*</button>
+            <button className={btnClass} onClick={() => applyMath('1/x', 'recip', x => 1/x)}>1/x</button>
 
-            <button className={btnNumClass} onClick={() => handleNum('4')}>4</button>
-            <button className={btnNumClass} onClick={() => handleNum('5')}>5</button>
-            <button className={btnNumClass} onClick={() => handleNum('6')}>6</button>
-            <button className={btnOpClass} onClick={() => handleOp('*')}>*</button>
-            <button className={btnSciClass} onClick={() => applyMath('10^x', '10^', (x) => Math.pow(10, x))}>10ˣ</button>
+            {/* Row 4 */}
+            <button className={numClass} onClick={() => handleNum('1')}>1</button>
+            <button className={numClass} onClick={() => handleNum('2')}>2</button>
+            <button className={numClass} onClick={() => handleNum('3')}>3</button>
+            <button className={btnClass} onClick={() => handleOp('-')}>-</button>
+            {/* Equal spans 2 rows, so we use absolute positioning for it */}
 
-            <button className={btnNumClass} onClick={() => handleNum('1')}>1</button>
-            <button className={btnNumClass} onClick={() => handleNum('2')}>2</button>
-            <button className={btnNumClass} onClick={() => handleNum('3')}>3</button>
-            <button className={btnOpClass} onClick={() => handleOp('-')}>-</button>
-            <button className={btnSciClass} onClick={() => applyMath('e^x', 'e^', Math.exp)}>eˣ</button>
+            {/* Row 5 */}
+            <button className={numClass + " col-span-2"} onClick={() => handleNum('0')}>0</button>
+            <button className={numClass} onClick={handleDot}>.</button>
+            <button className={btnClass} onClick={() => handleOp('+')}>+</button>
 
-            <button className={btnNumClass} onClick={() => handleNum('0')}>0</button>
-            <button className={btnNumClass} onClick={handleDot}>.</button>
-            <button className={btnOpClass} onClick={() => { handleNum('0'); handleNum('0'); }}>00</button>
-            <button className={btnOpClass} onClick={() => handleOp('+')}>+</button>
-            <button className={btnOpClass} onClick={handleEqual}>=</button>
+            <button className={greenClass} onClick={handleEqual}>=</button>
           </div>
-
         </div>
       </div>
     </div>

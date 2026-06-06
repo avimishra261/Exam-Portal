@@ -250,22 +250,27 @@ export default function TestEngine({
           <a href="/dashboard/tests" className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700">Back to Dashboard</a>
         </div>
       </div>
-      <div ref={containerRef} className="hidden lg:flex flex-col h-screen bg-white text-gray-900 select-none font-sans overflow-hidden text-sm">
+      <div ref={containerRef} className="hidden lg:flex flex-col h-screen bg-[#f1f1f1] text-[#333] select-none font-sans overflow-hidden text-[13px]">
       
       {/* Top Banner */}
-      <div className="h-14 flex justify-center items-center border-b border-gray-300 relative bg-white">
-         <div className="text-xl font-bold text-gray-700 tracking-wider">GRADUATE APTITUDE TEST IN ENGINEERING (GATE)</div>
+      <div className="h-14 flex justify-between items-center border-b border-[#a0a0a0] relative bg-white px-6 shadow-sm">
+         <div className="flex items-center gap-2">
+            <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center border border-purple-300 text-purple-700 font-bold text-[10px]">LOGO</div>
+         </div>
+         <div className="flex-1 flex justify-center text-[#2d228f] font-bold text-lg tracking-wide uppercase">
+            GRADUATE APTITUDE TEST IN ENGINEERING (GATE)
+         </div>
       </div>
 
-      {/* Main Header (Blue) */}
-      <div className="bg-[#2d7ba4] text-white flex justify-between items-center px-4 py-1.5 shadow-sm z-10">
-        <div className="font-semibold text-sm">{exam.title}</div>
+      {/* Main Header (Dark Gray) */}
+      <div className="bg-[#333333] text-white flex justify-between items-center px-4 py-1.5 z-10 border-b border-[#222]">
+        <div className="font-bold text-[#ffeb3b] text-[13px]">{exam.title}</div>
         <div className="flex gap-4 items-center">
-          <button className="flex items-center gap-1 hover:text-gray-200">
-            <span className="bg-white text-[#2d7ba4] rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold">i</span> Instructions
+          <button className="flex items-center gap-1.5 hover:text-gray-300">
+            <span className="bg-[#4b8df8] text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold">i</span> Instructions
           </button>
-          <button className="flex items-center gap-1 hover:text-gray-200">
-            <span className="bg-white text-[#2d7ba4] rounded-sm w-4 h-4 flex items-center justify-center text-[10px] font-bold">📄</span> Question Paper
+          <button className="flex items-center gap-1.5 hover:text-gray-300">
+            <span className="bg-[#5cb85c] text-white rounded-sm w-4 h-4 flex items-center justify-center text-[10px] font-bold">📄</span> Question Paper
           </button>
         </div>
       </div>
@@ -276,30 +281,39 @@ export default function TestEngine({
       <div className="flex flex-1 overflow-hidden">
         
         {/* Left Section - Question Area */}
-        <div className="flex-1 flex flex-col border-r border-gray-300">
+        <div className="flex-1 flex flex-col border-r border-[#a0a0a0] bg-white">
           
           {/* Sections & Time Header */}
-          <div className="bg-white border-b border-gray-300 flex justify-between items-stretch">
-             <div className="flex">
-               <div className="bg-[#2d7ba4] text-white px-4 py-1.5 font-bold border-r border-gray-300 text-xs flex items-center truncate max-w-[250px]" title={exam.title}>{exam.title} <span className="ml-2 bg-blue-400 rounded-full w-4 h-4 inline-flex items-center justify-center text-white text-[10px]">i</span></div>
+          <div className="bg-[#f0f0f0] border-b border-[#a0a0a0] flex justify-between items-stretch">
+             <div className="flex mt-1">
+               <div className="bg-[#0073b2] text-white px-4 py-1.5 font-bold border-r border-[#a0a0a0] text-[12px] flex items-center truncate max-w-[200px] cursor-pointer">
+                 General Aptitude <span className="ml-2 bg-[#66a3cc] rounded-full w-3.5 h-3.5 inline-flex items-center justify-center text-white text-[9px]">i</span>
+               </div>
+               <div className="bg-white text-[#333] px-4 py-1.5 font-bold border-r border-t border-l border-[#a0a0a0] text-[12px] flex items-center truncate max-w-[250px] cursor-pointer shadow-[0_-2px_0_#4b8df8]">
+                 {exam.title} <span className="ml-2 bg-[#4b8df8] rounded-full w-3.5 h-3.5 inline-flex items-center justify-center text-white text-[9px]">i</span>
+               </div>
              </div>
-             <div className="flex items-center px-4">
-                <span className="font-semibold text-xs">Time Left : <span className="font-bold text-sm">{formatTime(timeLeft)}</span></span>
-                <button onClick={() => setCalcOpen(!calcOpen)} className="ml-4 text-orange-500 hover:text-orange-600 text-xl" title="Open Calculator">🖩</button>
+             <div className="flex items-center px-4 bg-white border-l border-[#a0a0a0] ml-auto">
+                <span className="font-bold text-[13px] text-black mr-6">Time Left : {formatTime(timeLeft)}</span>
+                <button onClick={() => setCalcOpen(!calcOpen)} className="text-red-500 hover:opacity-80" title="Open Calculator">
+                  <div className="w-5 h-6 border-2 border-[#f0a0a0] rounded bg-[#ffe0e0] flex items-center justify-center shadow-sm">
+                    <span className="text-[10px] font-bold text-red-500 leading-none mb-0.5">▦</span>
+                  </div>
+                </button>
              </div>
           </div>
 
           {/* Question Details Header */}
-          <div className="border-b border-gray-300 px-4 py-2 flex justify-between items-center bg-[#f9f9f9] text-xs">
-             <span className="font-bold">Question Type: {currentQ.type}</span>
-             <span className="text-gray-600">Marks for correct answer: <span className="text-green-600 font-bold">{currentQ.maxMarks}</span> | Negative Marks: <span className="text-red-600 font-bold">0</span></span>
+          <div className="border-b border-[#a0a0a0] px-4 py-1.5 flex justify-between items-center bg-white text-[13px] text-black">
+             <span className="font-bold text-[14px]">Question Type: {currentQ.type}</span>
+             <span className="text-gray-700">Marks for correct answer: <span className="text-green-600 font-bold">{currentQ.maxMarks}</span> | Negative Marks: <span className="text-red-600 font-bold">2/3</span></span>
           </div>
 
           {/* Question Content */}
-          <div className="flex-1 overflow-y-auto p-4 bg-white">
-             <h3 className="font-bold mb-4 border-b pb-2 border-gray-100">Question No. {currentQIndex + 1}</h3>
+          <div className="flex-1 overflow-y-auto p-4 bg-white relative">
+             <h3 className="font-bold text-black text-[15px] mb-4">Question No. {currentQIndex + 1}</h3>
              
-             <div className="text-sm leading-relaxed mb-6 font-serif" style={{ fontSize: '15px' }}>
+             <div className="text-[15px] leading-relaxed mb-6 font-serif text-black border-t border-gray-200 pt-4">
                <p className="whitespace-pre-wrap">{currentQ.text}</p>
              </div>
 
@@ -308,32 +322,32 @@ export default function TestEngine({
                 <img 
                   src={currentQ.mediaUrl} 
                   alt="Question Media" 
-                  className="max-w-full h-auto cursor-zoom-in hover:opacity-90"
+                  className="max-w-full h-auto cursor-zoom-in hover:opacity-90 border border-gray-200"
                   style={{ maxHeight: '200px' }}
                   onClick={() => setZoomImage(currentQ.mediaUrl!)}
                 />
               </div>
             )}
 
-            <div className="space-y-3 font-serif">
+            <div className="space-y-4 font-serif text-black text-[15px]">
               {currentQ.type === 'MCQ' && currentQ.options.map((opt) => (
-                <label key={opt.id} className="flex items-start gap-3 cursor-pointer">
+                <label key={opt.id} className="flex items-start gap-3 cursor-pointer group">
                   <input 
                     type="radio" 
                     name={`q_${currentQ.id}`} 
                     value={opt.id} 
                     checked={answers[currentQ.id] === opt.id}
                     onChange={(e) => handleAnswerChange(currentQ.id, e.target.value)}
-                    className="mt-1" 
+                    className="mt-1 w-4 h-4" 
                   />
-                  <span>{opt.text}</span>
+                  <span className="group-hover:text-blue-700">{opt.text}</span>
                 </label>
               ))}
 
               {currentQ.type === 'MSQ' && currentQ.options.map((opt) => {
                 const currentVals = (answers[currentQ.id] as string[] | null) || [];
                 return (
-                  <label key={opt.id} className="flex items-start gap-3 cursor-pointer">
+                  <label key={opt.id} className="flex items-start gap-3 cursor-pointer group">
                     <input 
                       type="checkbox" 
                       value={opt.id} 
@@ -344,9 +358,9 @@ export default function TestEngine({
                           : currentVals.filter((v: string) => v !== opt.id);
                         handleAnswerChange(currentQ.id, newVals);
                       }}
-                      className="mt-1 rounded-sm" 
+                      className="mt-1 w-4 h-4 rounded-sm" 
                     />
-                    <span>{opt.text}</span>
+                    <span className="group-hover:text-blue-700">{opt.text}</span>
                   </label>
                 );
               })}
@@ -358,8 +372,8 @@ export default function TestEngine({
                       type="text" 
                       value={(answers[currentQ.id] as string) || ''}
                       readOnly
-                      className="w-full px-3 py-2 border-2 border-gray-400 bg-gray-50 focus:outline-none text-xl tracking-wider font-mono rounded-sm" 
-                      placeholder="Use numpad..."
+                      className="w-full px-3 py-2 border border-[#888] bg-[#f9f9f9] focus:outline-none text-xl tracking-wider font-mono rounded-sm shadow-inner" 
+                      placeholder=""
                     />
                   </div>
                   <VirtualNumpad 
@@ -374,7 +388,7 @@ export default function TestEngine({
                   <textarea 
                     value={(answers[currentQ.id] as string) || ''}
                     onChange={(e) => handleAnswerChange(currentQ.id, e.target.value)}
-                    className="w-full h-40 px-3 py-2 border border-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 rounded-sm font-sans"
+                    className="w-full h-40 px-3 py-2 border border-[#888] bg-white shadow-inner focus:outline-none focus:border-blue-500 rounded-sm font-sans text-sm"
                     placeholder="Type your answer here..."
                   />
                 </div>
@@ -383,47 +397,50 @@ export default function TestEngine({
           </div>
 
           {/* Bottom Action Bar */}
-          <div className="bg-white border-t border-gray-300 p-3 flex justify-between items-center text-sm">
-             <div className="flex gap-2">
-               <button onClick={markForReview} className="border border-gray-300 bg-white hover:bg-gray-50 px-4 py-1.5 rounded-sm">Mark for Review & Next</button>
-               <button onClick={clearResponse} className="border border-gray-300 bg-white hover:bg-gray-50 px-4 py-1.5 rounded-sm">Clear Response</button>
+          <div className="bg-white border-t border-[#a0a0a0] p-3 flex justify-between items-center">
+             <div className="flex gap-3">
+               <button onClick={markForReview} className="border border-[#888] bg-white hover:bg-gray-100 text-[#333] px-4 py-1.5 text-[13px] font-bold shadow-sm">Mark for Review & Next</button>
+               <button onClick={clearResponse} className="border border-[#888] bg-white hover:bg-gray-100 text-[#333] px-4 py-1.5 text-[13px] font-bold shadow-sm">Clear Response</button>
              </div>
-             <button onClick={saveAndNext} className="bg-[#1e73be] hover:bg-[#155a96] text-white px-6 py-1.5 rounded-sm shadow-sm font-semibold">Save & Next</button>
+             <button onClick={saveAndNext} className="bg-[#1e73be] hover:bg-[#155a96] border border-[#155a96] text-white px-6 py-1.5 font-bold shadow-sm text-[13px]">Save & Next</button>
           </div>
         </div>
 
         {/* Right Section - Profile & Palette */}
-        <div className="w-[280px] bg-[#eef5fb] flex flex-col z-10 text-xs">
+        <div className="w-[300px] bg-[#eef5fb] flex flex-col z-10 border-l border-[#ccc]">
           {/* Profile Area */}
-          <div className="flex p-3 border-b border-gray-300 bg-white gap-3 items-center">
-            <div className="w-14 h-14 bg-gray-200 rounded-sm flex items-center justify-center border border-gray-300">
-               <span className="text-3xl text-gray-400">👤</span>
+          <div className="flex p-3 bg-white border-b border-[#a0a0a0] gap-4 items-center h-20 shadow-sm">
+            <div className="w-[60px] h-[60px] bg-gray-200 rounded overflow-hidden border border-gray-400">
+               {/* using an iconic default user silhouette as in screenshot */}
+               <div className="w-full h-full bg-gradient-to-b from-[#ccc] to-[#888] flex items-center justify-center">
+                 <div className="w-8 h-8 bg-[#f5f5f5] rounded-full mt-2 opacity-80" />
+               </div>
             </div>
-            <div className="font-bold text-sm">{studentName}</div>
+            <div className="font-bold text-[16px] text-black truncate flex-1">{studentName}</div>
           </div>
           
           {/* Legend Area */}
-          <div className="p-3 bg-[#eef5fb]">
-            <div className="grid grid-cols-2 gap-y-3 gap-x-1">
-              <div className="flex items-center gap-1.5"><div className={`w-7 h-7 flex items-center justify-center ${answeredClass}`}>{Object.values(qStatus).filter(s => s===QuestionStatus.ANSWERED).length}</div> <span className="leading-tight">Answered</span></div>
-              <div className="flex items-center gap-1.5"><div className={`w-7 h-7 flex items-center justify-center ${notAnsweredClass}`}>{Object.values(qStatus).filter(s => s===QuestionStatus.NOT_ANSWERED).length}</div> <span className="leading-tight">Not<br/>Answered</span></div>
-              <div className="flex items-center gap-1.5"><div className={`w-7 h-7 flex items-center justify-center ${notVisitedClass}`}>{Object.values(qStatus).filter(s => s===QuestionStatus.NOT_VISITED).length}</div> <span className="leading-tight">Not<br/>Visited</span></div>
-              <div className="flex items-center gap-1.5"><div className={`w-7 h-7 flex items-center justify-center ${markedClass}`}>{Object.values(qStatus).filter(s => s===QuestionStatus.MARKED_FOR_REVIEW).length}</div> <span className="leading-tight">Marked<br/>for Review</span></div>
-              <div className="flex items-center gap-1.5 col-span-2"><div className={`w-7 h-7 flex items-center justify-center ${markedAnsweredClass}`}>{Object.values(qStatus).filter(s => s===QuestionStatus.ANSWERED_AND_MARKED).length}</div> <span className="leading-tight">Answered & Marked for<br/>Review (will also be<br/>evaluated)</span></div>
+          <div className="p-3 bg-white border-b border-[#a0a0a0]">
+            <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-[11px] text-black">
+              <div className="flex items-center gap-2"><div className={`w-[30px] h-[26px] flex items-center justify-center text-[11px] ${answeredClass}`}>{Object.values(qStatus).filter(s => s===QuestionStatus.ANSWERED).length}</div> <span className="leading-tight">Answered</span></div>
+              <div className="flex items-center gap-2"><div className={`w-[30px] h-[26px] flex items-center justify-center text-[11px] ${notAnsweredClass}`}>{Object.values(qStatus).filter(s => s===QuestionStatus.NOT_ANSWERED).length}</div> <span className="leading-tight">Not<br/>Answered</span></div>
+              <div className="flex items-center gap-2"><div className={`w-[30px] h-[26px] flex items-center justify-center text-[11px] ${notVisitedClass}`}>{Object.values(qStatus).filter(s => s===QuestionStatus.NOT_VISITED).length}</div> <span className="leading-tight">Not<br/>Visited</span></div>
+              <div className="flex items-center gap-2"><div className={`w-[30px] h-[30px] flex items-center justify-center text-[11px] ${markedClass}`}>{Object.values(qStatus).filter(s => s===QuestionStatus.MARKED_FOR_REVIEW).length}</div> <span className="leading-tight">Marked<br/>for Review</span></div>
+              <div className="flex items-center gap-2 col-span-2 mt-1"><div className={`w-[30px] h-[30px] flex items-center justify-center text-[11px] ${markedAnsweredClass}`}>{Object.values(qStatus).filter(s => s===QuestionStatus.ANSWERED_AND_MARKED).length}</div> <span className="leading-tight">Answered & Marked for<br/>Review (will also be<br/>evaluated)</span></div>
             </div>
           </div>
 
-          <div className="bg-[#2d7ba4] text-white px-3 py-1 font-bold">General Aptitude</div>
-          <div className="bg-blue-100 text-[#2d7ba4] px-3 py-1 font-bold text-[11px]">Choose a Question</div>
+          <div className="bg-[#0073b2] text-white px-3 py-1.5 font-bold text-[13px] border-b border-[#005a8f] shadow-sm">General Aptitude</div>
+          <div className="bg-[#eef5fb] text-black px-3 py-2 font-bold text-[12px]">Choose a Question</div>
 
           {/* Palette Area */}
-          <div className="p-3 flex-1 overflow-y-auto bg-white">
-            <div className="flex flex-wrap gap-2">
+          <div className="p-3 flex-1 overflow-y-auto bg-[#eef5fb]">
+            <div className="flex flex-wrap gap-2.5">
               {exam.questions.map((q, i) => (
                 <button
                   key={q.id}
                   onClick={() => navigateTo(i)}
-                  className={`w-10 h-10 flex items-center justify-center font-bold relative transition ${getPaletteClass(qStatus[q.id])} ${currentQIndex === i ? 'ring-2 ring-offset-1 ring-blue-500' : ''}`}
+                  className={`w-10 h-9 flex items-center justify-center font-bold text-[13px] shadow-sm relative transition ${getPaletteClass(qStatus[q.id])} ${currentQIndex === i ? 'ring-2 ring-offset-1 ring-blue-500' : ''}`}
                 >
                   {i + 1}
                 </button>
@@ -431,10 +448,10 @@ export default function TestEngine({
             </div>
           </div>
 
-          <div className="p-2 border-t border-gray-300 bg-white">
+          <div className="p-3 bg-[#c0d0e0] border-t border-[#a0a0a0] flex justify-center">
             <button 
               onClick={() => { if(confirm("Are you sure you want to submit the test?")) handleFinalSubmit() }}
-              className="w-full bg-[#5bc0de] hover:bg-[#46b8da] text-white py-1.5 font-bold shadow-sm rounded-sm"
+              className="bg-[#5bc0de] border border-[#46b8da] text-white py-1.5 px-8 text-[13px] font-bold shadow-sm rounded-sm hover:bg-[#46b8da]"
             >
               Submit
             </button>
