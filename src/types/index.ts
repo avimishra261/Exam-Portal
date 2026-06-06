@@ -40,6 +40,7 @@ export interface ExamQuestion {
   id: string;
   text: string;
   type: QuestionType;
+  maxMarks: number;
   mediaUrl: string | null;
   options: ExamOption[];
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { makeAdminAction, demoteAdminAction, deleteUserAction, resetPasswordAction, updateEmailAction } from '@/app/actions/admin';
+import { makeAdminAction, demoteAdminAction, deleteUserAction, resetPasswordAction, updateEmailAction, grantAttemptOverrideAction } from '@/app/actions/admin';
 
 interface UserRow {
   id: string;
@@ -11,12 +11,26 @@ interface UserRow {
   createdAt: string;
 }
 
-export default function UserTable({ users, currentUser }: { users: UserRow[]; currentUser: { id: string; role: string; isSuperAdmin: boolean } }) {
+export default function UserTable({ 
+  users, 
+  currentUser,
+  exams = [],
+  overrides = []
+}: { 
+  users: UserRow[]; 
+  currentUser: { id: string; role: string; isSuperAdmin: boolean };
+  exams?: any[];
+  overrides?: any[];
+}) {
   const [feedback, setFeedback] = useState<Record<string, string>>({});
   const [editingPassword, setEditingPassword] = useState<string | null>(null);
   const [editingEmail, setEditingEmail] = useState<string | null>(null);
+  const [editingAttempts, setEditingAttempts] = useState<string | null>(null);
+  
   const [newPassword, setNewPassword] = useState('');
   const [newEmail, setNewEmail] = useState('');
+  const [selectedExamId, setSelectedExamId] = useState('');
+  const [overrideAttempts, setOverrideAttempts] = useState('');
 
   const showFeedback = (userId: string, msg: string) => {
     setFeedback(prev => ({ ...prev, [userId]: msg }));
@@ -63,6 +77,30 @@ export default function UserTable({ users, currentUser }: { users: UserRow[]; cu
     else { showFeedback(userId, 'Email updated!'); setEditingEmail(null); setNewEmail(''); }
   };
 
+  const handleGrantOverride = async (userId: string) => {
+    if (!selectedExamId) {
+      showFeedback(userId, 'Error: Select an exam first.');
+      return;
+    }
+    const num = parseInt(overrideAttempts);
+    if (isNaN(num) || num < 1) {
+      showFeedback(userId, 'Error: Enter a valid number of attempts.');
+      return;
+    }
+    const res = await grantAttemptOverrideAction(userId, selectedExamId, num);
+    if (res.error) showFeedback(userId, `Error: ${res.error}`);
+    else { 
+      showFeedback(userId, 'Attempts updated!'); 
+      setEditingAttempts(null); 
+    }
+  };
+
+  const startEditingAttempts = (userId: string) => {
+    setEditingAttempts(userId);
+    setSelectedExamId(exams[0]?.id || '');
+    setOverrideAttempts('2');
+  };
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-left border-collapse">
@@ -105,66 +143,96 @@ export default function UserTable({ users, currentUser }: { users: UserRow[]; cu
                   {new Date(user.createdAt).toLocaleDateString()}
                 </td>
                 <td className="p-4">
-                  <div className="flex flex-wrap items-center gap-2">
-                    {/* Feedback message */}
-                    {feedback[user.id] && (
-                      <span className={`text-xs font-medium ${feedback[user.id].startsWith('Error') ? 'text-red-600' : 'text-green-600'}`}>
-                        {feedback[user.id]}
-                      </span>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {/* Feedback message */}
+                      {feedback[user.id] && (
+                        <span className={`text-xs font-medium ${feedback[user.id].startsWith('Error') ? 'text-red-600' : 'text-green-600'}`}>
+                          {feedback[user.id]}
+                        </span>
+                      )}
+
+                      {!isSelf && !feedback[user.id] && (
+                        <>
+                          {user.role === 'STUDENT' && (
+                            <>
+                              <button onClick={() => handleMakeAdmin(user.id)} className="text-xs font-medium text-blue-600 hover:text-blue-800 px-2 py-1 bg-blue-50 rounded">
+                                Make Admin
+                              </button>
+                              
+                              {editingAttempts !== user.id && (
+                                <button onClick={() => startEditingAttempts(user.id)} className="text-xs font-medium text-indigo-600 hover:text-indigo-800 px-2 py-1 bg-indigo-50 rounded">
+                                  Manage Attempts
+                                </button>
+                              )}
+                            </>
+                          )}
+
+                          {user.role === 'ADMIN' && !user.isSuperAdmin && currentUser.isSuperAdmin && (
+                            <button onClick={() => handleDemote(user.id)} className="text-xs font-medium text-amber-600 hover:text-amber-800 px-2 py-1 bg-amber-50 rounded">
+                              Demote
+                            </button>
+                          )}
+
+                          {editingPassword === user.id ? (
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="password"
+                                value={newPassword}
+                                onChange={e => setNewPassword(e.target.value)}
+                                placeholder="New password"
+                                className="px-2 py-1 border border-gray-300 rounded text-xs w-28 text-gray-900 bg-white"
+                              />
+                              <button onClick={() => handleResetPassword(user.id)} className="text-xs font-medium text-blue-600">Set</button>
+                              <button onClick={() => { setEditingPassword(null); setNewPassword(''); }} className="text-xs font-medium text-gray-500">✕</button>
+                            </div>
+                          ) : (
+                            <button onClick={() => { setEditingPassword(user.id); setNewPassword(''); }} className="text-xs font-medium text-gray-600 hover:text-gray-800 px-2 py-1 bg-gray-50 rounded">
+                              Reset Password
+                            </button>
+                          )}
+
+                          {editingEmail !== user.id && (
+                            <button onClick={() => { setEditingEmail(user.id); setNewEmail(user.email); }} className="text-xs font-medium text-gray-600 hover:text-gray-800 px-2 py-1 bg-gray-50 rounded">
+                              Change Email
+                            </button>
+                          )}
+
+                          {(user.role === 'STUDENT' || (user.role === 'ADMIN' && !user.isSuperAdmin && currentUser.isSuperAdmin)) && (
+                            <button onClick={() => handleDelete(user.id)} className="text-xs font-medium text-red-600 hover:text-red-800 px-2 py-1 bg-red-50 rounded">
+                              Delete
+                            </button>
+                          )}
+                        </>
+                      )}
+
+                      {isSelf && <span className="text-xs text-gray-400 italic">You</span>}
+                    </div>
+
+                    {/* Manage Attempts UI */}
+                    {editingAttempts === user.id && (
+                      <div className="flex items-center gap-2 mt-2 bg-indigo-50 p-2 rounded border border-indigo-100">
+                        <select 
+                          className="text-xs px-2 py-1 border border-indigo-200 rounded"
+                          value={selectedExamId}
+                          onChange={(e) => setSelectedExamId(e.target.value)}
+                        >
+                          {exams.map(ex => (
+                            <option key={ex.id} value={ex.id}>{ex.title}</option>
+                          ))}
+                        </select>
+                        <input 
+                          type="number" 
+                          min="1"
+                          placeholder="Attempts"
+                          value={overrideAttempts}
+                          onChange={(e) => setOverrideAttempts(e.target.value)}
+                          className="w-16 text-xs px-2 py-1 border border-indigo-200 rounded"
+                        />
+                        <button onClick={() => handleGrantOverride(user.id)} className="text-xs font-bold text-indigo-700 hover:underline">Apply</button>
+                        <button onClick={() => setEditingAttempts(null)} className="text-xs text-gray-500 hover:underline">Cancel</button>
+                      </div>
                     )}
-
-                    {!isSelf && !feedback[user.id] && (
-                      <>
-                        {/* Make Admin */}
-                        {user.role === 'STUDENT' && (
-                          <button onClick={() => handleMakeAdmin(user.id)} className="text-xs font-medium text-blue-600 hover:text-blue-800 px-2 py-1 bg-blue-50 rounded">
-                            Make Admin
-                          </button>
-                        )}
-
-                        {/* Demote Admin (super admin only) */}
-                        {user.role === 'ADMIN' && !user.isSuperAdmin && currentUser.isSuperAdmin && (
-                          <button onClick={() => handleDemote(user.id)} className="text-xs font-medium text-amber-600 hover:text-amber-800 px-2 py-1 bg-amber-50 rounded">
-                            Demote
-                          </button>
-                        )}
-
-                        {/* Reset Password */}
-                        {editingPassword === user.id ? (
-                          <div className="flex items-center gap-1">
-                            <input
-                              type="password"
-                              value={newPassword}
-                              onChange={e => setNewPassword(e.target.value)}
-                              placeholder="New password"
-                              className="px-2 py-1 border border-gray-300 rounded text-xs w-28 text-gray-900 bg-white"
-                            />
-                            <button onClick={() => handleResetPassword(user.id)} className="text-xs font-medium text-blue-600">Set</button>
-                            <button onClick={() => { setEditingPassword(null); setNewPassword(''); }} className="text-xs font-medium text-gray-500">✕</button>
-                          </div>
-                        ) : (
-                          <button onClick={() => { setEditingPassword(user.id); setNewPassword(''); }} className="text-xs font-medium text-gray-600 hover:text-gray-800 px-2 py-1 bg-gray-50 rounded">
-                            Reset Password
-                          </button>
-                        )}
-
-                        {/* Change Email */}
-                        {editingEmail !== user.id && (
-                          <button onClick={() => { setEditingEmail(user.id); setNewEmail(user.email); }} className="text-xs font-medium text-gray-600 hover:text-gray-800 px-2 py-1 bg-gray-50 rounded">
-                            Change Email
-                          </button>
-                        )}
-
-                        {/* Delete User */}
-                        {(user.role === 'STUDENT' || (user.role === 'ADMIN' && !user.isSuperAdmin && currentUser.isSuperAdmin)) && (
-                          <button onClick={() => handleDelete(user.id)} className="text-xs font-medium text-red-600 hover:text-red-800 px-2 py-1 bg-red-50 rounded">
-                            Delete
-                          </button>
-                        )}
-                      </>
-                    )}
-
-                    {isSelf && <span className="text-xs text-gray-400 italic">You</span>}
                   </div>
                 </td>
               </tr>

@@ -222,3 +222,27 @@ export async function updateEmailAction(userId: string, newEmail: string) {
   revalidatePath('/dashboard/admin/users');
   return { success: true };
 }
+
+export async function grantAttemptOverrideAction(userId: string, examId: string, allowedAttempts: number) {
+  const currentUser = await getUser();
+  if (!currentUser || currentUser.role !== 'ADMIN') return { error: 'Unauthorized' };
+
+  if (allowedAttempts < 1) return { error: 'Attempts must be at least 1' };
+
+  try {
+    await prisma.attemptOverride.upsert({
+      where: {
+        examId_userId: { examId, userId }
+      },
+      update: { allowedAttempts },
+      create: { examId, userId, allowedAttempts }
+    });
+
+    revalidatePath('/dashboard/admin/users');
+    revalidatePath('/dashboard/admin/tests');
+    return { success: true };
+  } catch (error: any) {
+    console.error('Failed to grant attempt override:', error.message);
+    return { error: 'Failed to update attempts' };
+  }
+}

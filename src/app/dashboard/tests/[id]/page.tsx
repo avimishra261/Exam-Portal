@@ -46,15 +46,23 @@ export default async function TakeTestPage({ params }: { params: Promise<{ id: s
     );
   }
 
-  const existing = await prisma.submission.findFirst({
+  const pastSubmissionsCount = await prisma.submission.count({
     where: { examId: exam.id, userId: user.id }
   });
 
-  if (existing) {
+  const override = await prisma.attemptOverride.findUnique({
+    where: {
+      examId_userId: { examId: exam.id, userId: user.id }
+    }
+  });
+
+  const allowedAttempts = override ? override.allowedAttempts : exam.maxAttempts;
+
+  if (pastSubmissionsCount >= allowedAttempts) {
     return (
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center max-w-lg mx-auto">
-        <h2 className="text-xl font-bold text-green-600 mb-2">Already Submitted</h2>
-        <p className="text-gray-600 mb-6">You have already taken this test.</p>
+        <h2 className="text-xl font-bold text-red-600 mb-2">Attempts Exhausted</h2>
+        <p className="text-gray-600 mb-6">You have used all {allowedAttempts} attempt(s) for this test.</p>
         <a href="/dashboard/analysis" className="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700">View Analysis</a>
       </div>
     );

@@ -11,19 +11,29 @@ export async function submitExamAction(examId: string, formData: FormData) {
   const user = await getUser();
   if (!user) return { error: 'Unauthorized' };
 
-  // Check if already submitted
-  const existing = await prisma.submission.findFirst({
-    where: { examId, userId: user.id }
-  });
-
-  if (existing) return { error: 'You have already taken this exam' };
-
   const exam = await prisma.exam.findUnique({
     where: { id: examId },
     include: { questions: { include: { options: true } } }
   });
 
   if (!exam) return { error: 'Exam not found' };
+
+  // Check attempt limit
+  const pastSubmissionsCount = await prisma.submission.count({
+    where: { examId, userId: user.id }
+  });
+
+  const override = await prisma.attemptOverride.findUnique({
+    where: {
+      examId_userId: { examId, userId: user.id }
+    }
+  });
+
+  const allowedAttempts = override ? override.allowedAttempts : exam.maxAttempts;
+
+  if (pastSubmissionsCount >= allowedAttempts) {
+    return { error: 'You have exhausted all attempts for this test' };
+  }
 
   let totalScore = 0;
   let maxScore = 0;

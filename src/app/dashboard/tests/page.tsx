@@ -18,7 +18,15 @@ export default async function TestsPage() {
     where: { userId: user.id }
   });
 
-  const takenExamIds = new Set(submissions.map(s => s.examId));
+  const overrides = await prisma.attemptOverride.findMany({
+    where: { userId: user.id }
+  });
+  const overrideMap = new Map(overrides.map(o => [o.examId, o.allowedAttempts]));
+
+  const submissionsByExam: Record<string, number> = {};
+  submissions.forEach(s => {
+    submissionsByExam[s.examId] = (submissionsByExam[s.examId] || 0) + 1;
+  });
 
   // Categorize tests
   const active: typeof allExams = [];
@@ -27,14 +35,16 @@ export default async function TestsPage() {
   const missed: typeof allExams = [];
 
   for (const exam of allExams) {
-    if (takenExamIds.has(exam.id)) {
-      completed.push(exam);
-      continue;
+    const attemptsTaken = submissionsByExam[exam.id] || 0;
+    const allowedAttempts = overrideMap.has(exam.id) ? overrideMap.get(exam.id)! : exam.maxAttempts;
+    const hasAttemptsLeft = attemptsTaken < allowedAttempts;
+    
+    if (attemptsTaken > 0) {
+      completed.push(exam); // Always show in completed if taken at least once
     }
 
     if (!exam.startTime || !exam.endTime) {
-      // Tests without scheduling are always active
-      active.push(exam);
+      if (hasAttemptsLeft) active.push(exam);
       continue;
     }
 
@@ -43,16 +53,14 @@ export default async function TestsPage() {
       if (daysUntil <= (exam.upcomingDays || 10)) {
         upcoming.push(exam);
       }
-      // else: too far in the future, don't show
     } else if (exam.endTime > now) {
-      active.push(exam);
+      if (hasAttemptsLeft) active.push(exam);
     } else {
-      // Past deadline and not taken
-      missed.push(exam);
+      if (attemptsTaken === 0) missed.push(exam);
     }
   }
 
-  // Static class maps — Tailwind can't purge dynamically constructed class names
+  // Static class maps
   const colorClasses: Record<string, { badge: string }> = {
     blue:  { badge: 'bg-blue-100 text-blue-700' },
     amber: { badge: 'bg-amber-100 text-amber-700' },
@@ -89,45 +97,60 @@ export default async function TestsPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {tab.tests.map(ex => (
-                <div key={ex.id} className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md transition">
-                  <h4 className="text-base font-semibold text-gray-800 mb-1">{ex.title}</h4>
-                  <p className="text-sm text-gray-500 mb-3 line-clamp-2">{ex.description || 'No description.'}</p>
-                  <div className="flex items-center justify-between text-xs text-gray-400 mb-3">
-                    <span>{ex.durationMinutes} mins</span>
-                    <span>{ex._count.questions} Qs</span>
+              {tab.tests.map(ex => {
+                const attemptsTaken = submissionsByExam[ex.id] || 0;
+                const allowedAttempts = overrideMap.has(ex.id) ? overrideMap.get(ex.id)! : ex.maxAttempts;
+
+                return (
+                  <div key={ex.id} className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md transition">
+                    <h4 className="text-base font-semibold text-gray-800 mb-1">{ex.title}</h4>
+                    <p className="text-sm text-gray-500 mb-3 line-clamp-2">{ex.description || 'No description.'}</p>
+                    <div className="flex items-center justify-between text-xs text-gray-400 mb-3">
+                      <span>{ex.durationMinutes} mins</span>
+                      <span>{ex._count.questions} Qs</span>
+                    </div>
+                    {ex.startTime && (
+                      <p className="text-xs text-gray-400 mb-3">
+                        {tab.label === 'Active' && `Ends: ${ex.endTime?.toLocaleDateString()}`}
+                        {tab.label === 'Upcoming' && `Starts: ${ex.startTime.toLocaleDateString()}`}
+                        {tab.label === 'Missed' && `Ended: ${ex.endTime?.toLocaleDateString()}`}
+                      </p>
+                    )}
+                    
+                    <div className="text-xs text-gray-500 mb-3 font-medium">
+                      Attempts: {attemptsTaken} / {allowedAttempts}
+                    </div>
+
+                    <div className="flex justify-end gap-2">
+                      {tab.label === 'Active' && user.role === 'STUDENT' && (
+                        <Link href={`/dashboard/tests/${ex.id}`} className="px-4 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition">
+                          {attemptsTaken > 0 ? 'Retake Test' : 'Take Test'}
+                        </Link>
+                      )}
+                      {tab.label === 'Completed' && (
+                        <>
+                          <Link href={`/dashboard/analysis`} className="px-3 py-1.5 bg-indigo-50 text-indigo-700 text-sm font-medium rounded-lg hover:bg-indigo-100 transition">
+                            View Analysis
+                          </Link>
+                          <span className="px-3 py-1.5 bg-green-50 text-green-700 text-sm font-medium rounded-lg">
+                            ✓ Completed
+                          </span>
+                        </>
+                      )}
+                      {tab.label === 'Upcoming' && (
+                        <span className="px-3 py-1.5 bg-amber-50 text-amber-700 text-sm font-medium rounded-lg">
+                          Starts Soon
+                        </span>
+                      )}
+                      {tab.label === 'Missed' && (
+                        <span className="px-3 py-1.5 bg-red-50 text-red-700 text-sm font-medium rounded-lg">
+                          Missed
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  {ex.startTime && (
-                    <p className="text-xs text-gray-400 mb-3">
-                      {tab.label === 'Active' && `Ends: ${ex.endTime?.toLocaleDateString()}`}
-                      {tab.label === 'Upcoming' && `Starts: ${ex.startTime.toLocaleDateString()}`}
-                      {tab.label === 'Missed' && `Ended: ${ex.endTime?.toLocaleDateString()}`}
-                    </p>
-                  )}
-                  <div className="flex justify-end">
-                    {tab.label === 'Active' && user.role === 'STUDENT' && (
-                      <Link href={`/dashboard/tests/${ex.id}`} className="px-4 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition">
-                        Take Test
-                      </Link>
-                    )}
-                    {tab.label === 'Completed' && (
-                      <span className="px-3 py-1.5 bg-green-50 text-green-700 text-sm font-medium rounded-lg">
-                        ✓ Completed
-                      </span>
-                    )}
-                    {tab.label === 'Upcoming' && (
-                      <span className="px-3 py-1.5 bg-amber-50 text-amber-700 text-sm font-medium rounded-lg">
-                        Starts Soon
-                      </span>
-                    )}
-                    {tab.label === 'Missed' && (
-                      <span className="px-3 py-1.5 bg-red-50 text-red-700 text-sm font-medium rounded-lg">
-                        Missed
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

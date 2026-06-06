@@ -20,6 +20,9 @@ export default async function ManageUsersPage() {
     createdAt: u.createdAt.toISOString()
   }));
 
+  const exams = await prisma.exam.findMany({ select: { id: true, title: true, maxAttempts: true } });
+  const overrides = await prisma.attemptOverride.findMany();
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
       <h2 className="text-2xl font-bold text-gray-800 mb-2">Manage Users</h2>
@@ -32,6 +35,8 @@ export default async function ManageUsersPage() {
           role: currentUser.role,
           isSuperAdmin: currentUser.isSuperAdmin
         }}
+        exams={exams}
+        overrides={overrides}
       />
     </div>
   );
