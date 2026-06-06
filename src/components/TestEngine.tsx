@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Calculator from './Calculator';
 import ImageZoomModal from './ImageZoomModal';
+import VirtualNumpad from './VirtualNumpad';
 import type { ExamForTestEngine, QuestionType } from '@/types';
 import { QuestionStatus } from '@/types';
 
@@ -86,7 +87,8 @@ export default function TestEngine({
           examId: exam.id,
           timeLeft,
           answers,
-          status: 'IN_PROGRESS'
+          status: 'IN_PROGRESS',
+          isExitFullscreen: true
         })
       });
     } catch (e) {
@@ -322,13 +324,19 @@ export default function TestEngine({
               })}
 
               {currentQ.type === 'NAT' && (
-                <div className="max-w-sm mt-4">
-                  <input 
-                    type="number" 
-                    step="any" 
-                    value={answers[currentQ.id] || ''}
-                    onChange={(e) => handleAnswerChange(currentQ.id, e.target.value)}
-                    className="w-full px-3 py-1 border border-gray-400 focus:outline-none focus:border-blue-500" 
+                <div className="max-w-sm mt-4 flex gap-8 items-start">
+                  <div className="flex-1">
+                    <input 
+                      type="text" 
+                      value={(answers[currentQ.id] as string) || ''}
+                      readOnly
+                      className="w-full px-3 py-2 border-2 border-gray-400 bg-gray-50 focus:outline-none text-xl tracking-wider font-mono rounded-sm" 
+                      placeholder="Use numpad..."
+                    />
+                  </div>
+                  <VirtualNumpad 
+                    value={(answers[currentQ.id] as string) || ''} 
+                    onChange={(val) => handleAnswerChange(currentQ.id, val)}
                   />
                 </div>
               )}

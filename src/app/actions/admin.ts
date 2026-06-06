@@ -224,7 +224,7 @@ export async function updateEmailAction(userId: string, newEmail: string) {
   return { success: true };
 }
 
-export async function grantAttemptOverrideAction(userId: string, examId: string, allowedAttempts: number) {
+export async function grantAttemptOverrideAction(userId: string, examId: string, allowedAttempts: number, durationOverride: number | null) {
   const currentUser = await getUser();
   if (!currentUser || currentUser.role !== 'ADMIN') return { error: 'Unauthorized' };
 
@@ -235,8 +235,8 @@ export async function grantAttemptOverrideAction(userId: string, examId: string,
       where: {
         examId_userId: { examId, userId }
       },
-      update: { allowedAttempts },
-      create: { examId, userId, allowedAttempts }
+      update: { allowedAttempts, durationOverride },
+      create: { examId, userId, allowedAttempts, durationOverride }
     });
 
     revalidatePath('/dashboard/admin/users');
@@ -246,4 +246,134 @@ export async function grantAttemptOverrideAction(userId: string, examId: string,
     console.error('Failed to grant attempt override:', error.message);
     return { error: 'Failed to update attempts' };
   }
+}
+
+export async function deleteTestAction(examId: string) {
+  const user = await getUser();
+  if (!user || user.role !== 'ADMIN') return { error: 'Unauthorized' };
+
+  await prisma.exam.delete({ where: { id: examId } });
+  revalidatePath('/dashboard/admin/tests');
+  return { success: true };
+}
+
+export async function reopenTestAction(examId: string) {
+  const user = await getUser();
+  if (!user || user.role !== 'ADMIN') return { error: 'Unauthorized' };
+
+  // Set endTime to null to reopen
+  await prisma.exam.update({
+    where: { id: examId },
+    data: { endTime: null }
+  });
+  revalidatePath('/dashboard/admin/tests');
+  return { success: true };
+}
+
+export async function toggleTestDraftStatusAction(examId: string, isDraft: boolean) {
+  const user = await getUser();
+  if (!user || user.role !== 'ADMIN') return { error: 'Unauthorized' };
+
+  await prisma.exam.update({
+    where: { id: examId },
+    data: { isDraft }
+  });
+  revalidatePath('/dashboard/admin/tests');
+  return { success: true };
+}
+
+export async function bulkUploadTextAction(formData: FormData) {
+  const user = await getUser();
+  if (!user || user.role !== 'ADMIN') return { error: 'Unauthorized' };
+
+  const text = formData.get('content') as string;
+  if (!text) return { error: 'No content provided' };
+
+  const tests = text.split('TEST_START').filter(t => t.trim().length > 0);
+  let count = 0;
+  
+  for (const t of tests) {
+    if (!t.includes('TEST_END')) continue;
+    const content = t.split('TEST_END')[0].trim();
+    const lines = content.split('\n').map(l => l.trim());
+    
+    let title = 'Bulk Uploaded Test';
+    let duration = 60;
+    
+    // Parse header
+    let i = 0;
+    while(i < lines.length && lines[i] !== '') {
+      if (lines[i].startsWith('Title:')) title = lines[i].substring(6).trim();
+      if (lines[i].startsWith('Duration:')) duration = parseInt(lines[i].substring(9).trim(), 10) || 60;
+      i++;
+    }
+    
+    const questions: any[] = [];
+    let currentQ: any = null;
+    
+    for (; i < lines.length; i++) {
+      const line = lines[i];
+      if (line.startsWith('Q:')) {
+        if (currentQ) questions.push(currentQ);
+        currentQ = { text: line.substring(2).trim(), type: 'MCQ', maxMarks: 1, options: [] };
+      } else if (currentQ) {
+        if (line.startsWith('Type:')) currentQ.type = line.substring(5).trim();
+        else if (line.startsWith('Marks:')) currentQ.maxMarks = parseFloat(line.substring(6).trim());
+        else if (line.startsWith('Answer:')) currentQ.correctNumeric = parseFloat(line.substring(7).trim());
+        else if (line.startsWith('Rubric:')) currentQ.correctText = line.substring(7).trim();
+        else if (line.match(/^[A-Z*]+\)/)) {
+          const isCorrect = line.startsWith('*');
+          const optText = line.substring(line.indexOf(')') + 1).trim();
+          currentQ.options.push({ text: optText, isCorrect });
+        }
+      }
+    }
+    if (currentQ) questions.push(currentQ);
+    
+    if (questions.length > 0) {
+      await prisma.exam.create({
+        data: {
+          title,
+          durationMinutes: duration,
+          isDraft: true,
+          createdById: user.id,
+          questions: {
+            create: questions.map(q => ({
+              text: q.text,
+              type: q.type,
+              maxMarks: isNaN(q.maxMarks) ? 1 : q.maxMarks,
+              correctNumeric: q.correctNumeric || null,
+              correctText: q.correctText || null,
+              options: ['MCQ', 'MSQ'].includes(q.type) ? {
+                create: q.options.map((o: any) => ({ text: o.text, isCorrect: o.isCorrect }))
+              } : undefined
+            }))
+          }
+        }
+      });
+      count++;
+    }
+  }
+  
+  revalidatePath('/dashboard/admin/tests');
+  return { success: true, count };
+}
+
+export async function banStudentAction(examId: string, userId: string, ban: boolean) {
+  const user = await getUser();
+  if (!user || user.role !== 'ADMIN') return { error: 'Unauthorized' };
+
+  if (ban) {
+    await prisma.bannedStudent.upsert({
+      where: { examId_userId: { examId, userId } },
+      update: {},
+      create: { examId, userId }
+    });
+  } else {
+    await prisma.bannedStudent.deleteMany({
+      where: { examId, userId }
+    });
+  }
+  revalidatePath('/dashboard/admin/tests');
+  return { success: true };
 }

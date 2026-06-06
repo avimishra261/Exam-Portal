@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { examId, timeLeft, answers, status } = body;
+    const { examId, timeLeft, answers, status, isExitFullscreen } = body;
 
     if (!examId) {
       return NextResponse.json({ error: 'Missing examId' }, { status: 400 });
@@ -31,7 +31,11 @@ export async function POST(req: Request) {
       // Update existing
       await prisma.submission.update({
         where: { id: existingDraft.id },
-        data: { timeLeft, status: status || 'IN_PROGRESS' }
+        data: { 
+          timeLeft, 
+          status: status || 'IN_PROGRESS',
+          fullscreenExitCount: isExitFullscreen ? existingDraft.fullscreenExitCount + 1 : existingDraft.fullscreenExitCount
+        }
       });
       submissionId = existingDraft.id;
 
@@ -46,7 +50,8 @@ export async function POST(req: Request) {
           examId,
           userId: user.id,
           timeLeft,
-          status: status || 'IN_PROGRESS'
+          status: status || 'IN_PROGRESS',
+          fullscreenExitCount: isExitFullscreen ? 1 : 0
         }
       });
       submissionId = newDraft.id;

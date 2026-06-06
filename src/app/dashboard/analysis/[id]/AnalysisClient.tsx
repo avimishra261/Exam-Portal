@@ -171,7 +171,28 @@ export default function AnalysisClient({ submission }: { submission: any }) {
             {/* NAT Rendering */}
             {currentQuestion.type === 'NAT' && (
               <div className="space-y-6 max-w-2xl mt-4">
-                {((showSolution || showAllSolutions) || currentAns?.numericAnswer !== currentQuestion.correctNumeric) && (
+                
+                {/* Show User's Answer */}
+                {currentAns?.numericAnswer !== undefined && currentAns?.numericAnswer !== null && (
+                  <div className="flex items-center gap-4">
+                    <div className={`flex-1 px-4 py-3 border rounded-sm text-xl bg-white
+                      ${currentAns.numericAnswer === currentQuestion.correctNumeric 
+                        ? 'border-[#28a745] text-[#28a745]' 
+                        : 'border-[#e83e8c] text-[#e83e8c]'}`}>
+                      {currentAns.numericAnswer}
+                    </div>
+                    <div className={`flex items-center gap-2 text-white px-4 py-2 rounded-r-md relative text-sm font-bold min-w-[160px]
+                      ${currentAns.numericAnswer === currentQuestion.correctNumeric ? 'bg-[#28a745]' : 'bg-[#e83e8c]'}`}>
+                      <div className={`absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 rotate-45 rounded-sm
+                        ${currentAns.numericAnswer === currentQuestion.correctNumeric ? 'bg-[#28a745]' : 'bg-[#e83e8c]'}`}></div>
+                      {currentAns.numericAnswer === currentQuestion.correctNumeric ? <CheckCircle2 className="w-4 h-4 relative z-10" /> : <XCircle className="w-4 h-4 relative z-10" />}
+                      <span className="relative z-10">My Answer</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Show Correct Answer */}
+                {(showSolution || showAllSolutions) && (
                   <div className="flex items-center gap-4">
                     <div className="flex-1 px-4 py-3 border border-[#28a745] rounded-sm text-[#28a745] bg-white text-xl">
                       {currentQuestion.correctNumeric}
@@ -183,29 +204,33 @@ export default function AnalysisClient({ submission }: { submission: any }) {
                     </div>
                   </div>
                 )}
-                
-                {currentAns?.numericAnswer !== undefined && currentAns?.numericAnswer !== null && currentAns.numericAnswer !== currentQuestion.correctNumeric && (
-                  <div className="flex items-center gap-4">
-                    <div className="flex-1 px-4 py-3 border border-[#e83e8c] rounded-sm text-[#e83e8c] bg-white text-xl">
-                      {currentAns.numericAnswer}
+              </div>
+            )}
+
+            {/* Descriptive Rendering */}
+            {currentQuestion.type === 'DESCRIPTIVE' && (
+              <div className="space-y-6 max-w-2xl mt-4">
+                {currentAns?.textAnswer && (
+                  <div className="flex items-start gap-4">
+                    <div className={`flex-1 px-4 py-3 border rounded-sm text-base bg-white border-blue-500 text-gray-800`}>
+                      {currentAns.textAnswer}
                     </div>
-                    <div className="flex items-center gap-2 text-white bg-[#e83e8c] px-4 py-2 rounded-r-md relative text-sm font-bold min-w-[160px]">
-                      <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 bg-[#e83e8c] rotate-45 rounded-sm"></div>
-                      <XCircle className="w-4 h-4 relative z-10" />
+                    <div className={`flex items-center gap-2 text-white px-4 py-2 rounded-r-md relative text-sm font-bold min-w-[160px] bg-blue-500 mt-2`}>
+                      <div className={`absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 rotate-45 rounded-sm bg-blue-500`}></div>
+                      <User className="w-4 h-4 relative z-10" />
                       <span className="relative z-10">My Answer</span>
                     </div>
                   </div>
                 )}
-                
-                {currentAns?.numericAnswer !== undefined && currentAns?.numericAnswer !== null && currentAns.numericAnswer === currentQuestion.correctNumeric && !(showSolution || showAllSolutions) && (
-                  <div className="flex items-center gap-4">
-                    <div className="flex-1 px-4 py-3 border border-[#28a745] rounded-sm text-[#28a745] bg-white text-xl">
-                      {currentAns.numericAnswer}
+                {(showSolution || showAllSolutions) && currentQuestion.correctText && (
+                  <div className="flex items-start gap-4">
+                    <div className="flex-1 px-4 py-3 border border-[#28a745] rounded-sm text-gray-800 bg-white text-base whitespace-pre-wrap">
+                      {currentQuestion.correctText}
                     </div>
-                    <div className="flex items-center gap-2 text-white bg-[#28a745] px-4 py-2 rounded-r-md relative text-sm font-bold min-w-[160px]">
+                    <div className="flex items-center gap-2 text-white bg-[#28a745] px-4 py-2 rounded-r-md relative text-sm font-bold min-w-[160px] mt-2">
                       <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 bg-[#28a745] rotate-45 rounded-sm"></div>
                       <CheckCircle2 className="w-4 h-4 relative z-10" />
-                      <span className="relative z-10">My Answer</span>
+                      <span className="relative z-10">Rubric / Correct</span>
                     </div>
                   </div>
                 )}

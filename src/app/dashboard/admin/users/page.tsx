@@ -22,6 +22,7 @@ export default async function ManageUsersPage() {
 
   const exams = await prisma.exam.findMany({ select: { id: true, title: true, maxAttempts: true } });
   const overrides = await prisma.attemptOverride.findMany();
+  const bannedStudents = await prisma.bannedStudent.findMany();
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
@@ -37,6 +38,7 @@ export default async function ManageUsersPage() {
         }}
         exams={exams}
         overrides={overrides}
+        bannedStudents={bannedStudents}
       />
     </div>
   );

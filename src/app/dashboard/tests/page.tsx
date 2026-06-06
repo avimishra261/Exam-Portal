@@ -6,10 +6,12 @@ import { redirect } from 'next/navigation';
 export default async function TestsPage() {
   const user = await getUser();
   if (!user) redirect('/login');
+  if (user.role === 'ADMIN') redirect('/dashboard/admin/tests');
 
   const now = new Date();
 
   const allExams = await prisma.exam.findMany({
+    where: { isDraft: false },
     orderBy: { createdAt: 'desc' },
     include: { _count: { select: { questions: true } } }
   });

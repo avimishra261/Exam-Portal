@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { makeAdminAction, demoteAdminAction, deleteUserAction, resetPasswordAction, updateEmailAction, grantAttemptOverrideAction } from '@/app/actions/admin';
+import { makeAdminAction, demoteAdminAction, deleteUserAction, resetPasswordAction, updateEmailAction, grantAttemptOverrideAction, banStudentAction } from '@/app/actions/admin';
 
 interface UserRow {
   id: string;
@@ -21,6 +21,7 @@ export default function UserTable({
   currentUser: { id: string; role: string; isSuperAdmin: boolean };
   exams?: any[];
   overrides?: any[];
+  bannedStudents?: any[];
 }) {
   const [feedback, setFeedback] = useState<Record<string, string>>({});
   const [editingPassword, setEditingPassword] = useState<string | null>(null);
@@ -31,6 +32,7 @@ export default function UserTable({
   const [newEmail, setNewEmail] = useState('');
   const [selectedExamId, setSelectedExamId] = useState('');
   const [overrideAttempts, setOverrideAttempts] = useState('');
+  const [overrideDuration, setOverrideDuration] = useState('');
 
   const showFeedback = (userId: string, msg: string) => {
     setFeedback(prev => ({ ...prev, [userId]: msg }));
@@ -87,11 +89,24 @@ export default function UserTable({
       showFeedback(userId, 'Error: Enter a valid number of attempts.');
       return;
     }
-    const res = await grantAttemptOverrideAction(userId, selectedExamId, num);
+    const durNum = overrideDuration ? parseInt(overrideDuration) : null;
+    const res = await grantAttemptOverrideAction(userId, selectedExamId, num, isNaN(durNum as any) ? null : durNum);
     if (res.error) showFeedback(userId, `Error: ${res.error}`);
     else { 
-      showFeedback(userId, 'Attempts updated!'); 
+      showFeedback(userId, 'Overrides applied!'); 
       setEditingAttempts(null); 
+    }
+  };
+
+  const handleBanToggle = async (userId: string, isBanned: boolean) => {
+    if (!selectedExamId) {
+      showFeedback(userId, 'Error: Select an exam first.');
+      return;
+    }
+    const res = await banStudentAction(selectedExamId, userId, isBanned);
+    if (res.error) showFeedback(userId, `Error: ${res.error}`);
+    else { 
+      showFeedback(userId, isBanned ? 'User banned from test.' : 'User ban removed.'); 
     }
   };
 
@@ -99,6 +114,7 @@ export default function UserTable({
     setEditingAttempts(userId);
     setSelectedExamId(exams[0]?.id || '');
     setOverrideAttempts('2');
+    setOverrideDuration('');
   };
 
   return (
@@ -162,7 +178,7 @@ export default function UserTable({
                               
                               {editingAttempts !== user.id && (
                                 <button onClick={() => startEditingAttempts(user.id)} className="text-xs font-medium text-indigo-600 hover:text-indigo-800 px-2 py-1 bg-indigo-50 rounded">
-                                  Manage Attempts
+                                  Manage Access
                                 </button>
                               )}
                             </>
@@ -211,26 +227,55 @@ export default function UserTable({
 
                     {/* Manage Attempts UI */}
                     {editingAttempts === user.id && (
-                      <div className="flex items-center gap-2 mt-2 bg-indigo-50 p-2 rounded border border-indigo-100">
-                        <select 
-                          className="text-xs px-2 py-1 border border-indigo-200 rounded"
-                          value={selectedExamId}
-                          onChange={(e) => setSelectedExamId(e.target.value)}
-                        >
-                          {exams.map(ex => (
-                            <option key={ex.id} value={ex.id}>{ex.title}</option>
-                          ))}
-                        </select>
-                        <input 
-                          type="number" 
-                          min="1"
-                          placeholder="Attempts"
-                          value={overrideAttempts}
-                          onChange={(e) => setOverrideAttempts(e.target.value)}
-                          className="w-16 text-xs px-2 py-1 border border-indigo-200 rounded"
-                        />
-                        <button onClick={() => handleGrantOverride(user.id)} className="text-xs font-bold text-indigo-700 hover:underline">Apply</button>
-                        <button onClick={() => setEditingAttempts(null)} className="text-xs text-gray-500 hover:underline">Cancel</button>
+                      <div className="flex flex-col gap-2 mt-2 bg-indigo-50 p-3 rounded border border-indigo-100 w-fit">
+                        <div className="flex items-center gap-2">
+                          <select 
+                            className="text-xs px-2 py-1 border border-indigo-200 rounded max-w-[150px]"
+                            value={selectedExamId}
+                            onChange={(e) => {
+                              setSelectedExamId(e.target.value);
+                              const existingOvr = overrides.find(o => o.userId === user.id && o.examId === e.target.value);
+                              setOverrideAttempts(existingOvr?.allowedAttempts?.toString() || '2');
+                              setOverrideDuration(existingOvr?.durationOverride?.toString() || '');
+                            }}
+                          >
+                            {exams.map(ex => (
+                              <option key={ex.id} value={ex.id}>{ex.title}</option>
+                            ))}
+                          </select>
+                          
+                          {(() => {
+                            const isBanned = bannedStudents?.some(b => b.userId === user.id && b.examId === selectedExamId);
+                            return isBanned ? (
+                              <button onClick={() => handleBanToggle(user.id, false)} className="text-xs px-2 py-1 bg-green-100 text-green-700 font-bold rounded hover:bg-green-200">Unban</button>
+                            ) : (
+                              <button onClick={() => handleBanToggle(user.id, true)} className="text-xs px-2 py-1 bg-red-100 text-red-700 font-bold rounded hover:bg-red-200">Ban</button>
+                            );
+                          })()}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <input 
+                            type="number" 
+                            min="1"
+                            placeholder="Attempts"
+                            title="Allowed Attempts"
+                            value={overrideAttempts}
+                            onChange={(e) => setOverrideAttempts(e.target.value)}
+                            className="w-20 text-xs px-2 py-1 border border-indigo-200 rounded"
+                          />
+                          <input 
+                            type="number" 
+                            min="1"
+                            placeholder="Mins (Opt)"
+                            title="Duration Override (Mins)"
+                            value={overrideDuration}
+                            onChange={(e) => setOverrideDuration(e.target.value)}
+                            className="w-24 text-xs px-2 py-1 border border-indigo-200 rounded"
+                          />
+                          <button onClick={() => handleGrantOverride(user.id)} className="text-xs px-2 py-1 bg-indigo-600 text-white font-bold rounded hover:bg-indigo-700">Apply</button>
+                          <button onClick={() => setEditingAttempts(null)} className="text-xs px-2 py-1 text-gray-500 hover:bg-gray-200 rounded">Close</button>
+                        </div>
                       </div>
                     )}
                   </div>

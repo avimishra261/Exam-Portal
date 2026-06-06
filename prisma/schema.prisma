@@ -10,6 +10,7 @@ datasource db {
 model User {
   id           String       @id @default(uuid())
   email        String       @unique
+  name         String?
   password     String
   role         String       @default("STUDENT")
   isSuperAdmin Boolean      @default(false)
@@ -17,6 +18,7 @@ model User {
 
   submissions      Submission[]
   attemptOverrides AttemptOverride[]
+  bannedFrom       BannedStudent[]
 }
 
 model Exam {
@@ -32,9 +34,14 @@ model Exam {
   fullscreenChances Int        @default(5)
   maxAttempts     Int          @default(1)
 
+  leaderboardFrozen    Boolean @default(false)
+  leaderboardAnonymous Boolean @default(false)
+  isDraft              Boolean @default(false)
+
   questions       Question[]
   submissions     Submission[]
   overrides       AttemptOverride[]
+  bannedStudents  BannedStudent[]
 }
 
 model Question {
@@ -75,6 +82,7 @@ model Submission {
   
   status      String   @default("COMPLETED")
   timeLeft    Int?
+  fullscreenExitCount Int @default(0)
 
   exam        Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -91,6 +99,7 @@ model SubmissionAnswer {
   numericAnswer     Float?
   textAnswer        String?
   marksObtained     Float?
+  timeSpent         Int?
 
   submission     Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
   question       Question   @relation(fields: [questionId], references: [id], onDelete: Cascade)
@@ -101,7 +110,20 @@ model AttemptOverride {
   examId          String
   userId          String
   allowedAttempts Int
+  durationOverride Int?
   createdAt       DateTime @default(now())
+
+  exam Exam @relation(fields: [examId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([examId, userId])
+}
+
+model BannedStudent {
+  id        String   @id @default(uuid())
+  examId    String
+  userId    String
+  createdAt DateTime @default(now())
 
   exam Exam @relation(fields: [examId], references: [id], onDelete: Cascade)
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
