@@ -2,12 +2,14 @@ import prisma from '@/lib/prisma';
 import { getUser } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 
-export default async function MonitorTestPage({ params }: { params: { id: string } }) {
+export default async function MonitorTestPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await getUser();
   if (!user || user.role !== 'ADMIN') redirect('/dashboard');
 
+  const resolvedParams = await params;
+
   const exam = await prisma.exam.findUnique({
-    where: { id: params.id },
+    where: { id: resolvedParams.id },
     include: {
       submissions: {
         where: { status: 'IN_PROGRESS' },
