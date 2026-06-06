@@ -1,9 +1,20 @@
 'use client';
 
 import React, { useState } from 'react';
-import { CheckCircle2, XCircle, Bookmark, Clock, User, ChevronLeft, ChevronRight } from 'lucide-react';
+import { CheckCircle2, XCircle, Bookmark, Clock, User, ChevronLeft, ChevronRight, BarChart3, List, Trophy, Percent } from 'lucide-react';
 
-export default function AnalysisClient({ submission }: { submission: any }) {
+export default function AnalysisClient({ 
+  submission, 
+  leaderboard = [], 
+  topScore = 0, 
+  currentUserId = '' 
+}: { 
+  submission: any;
+  leaderboard?: any[];
+  topScore?: number;
+  currentUserId?: string;
+}) {
+  const [activeTab, setActiveTab] = useState<'scorecard' | 'solutions' | 'leaderboard' | 'compare'>('scorecard');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showSolution, setShowSolution] = useState(false);
   const [showAllSolutions, setShowAllSolutions] = useState(false);
@@ -74,11 +85,41 @@ export default function AnalysisClient({ submission }: { submission: any }) {
         </div>
       </header>
 
+      {/* TABS */}
+      <div className="bg-white border-b border-gray-200 px-4 flex gap-8 shrink-0">
+        <button 
+          onClick={() => setActiveTab('scorecard')} 
+          className={`py-3 font-medium text-sm border-b-2 flex items-center gap-2 transition ${activeTab === 'scorecard' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
+        >
+          <BarChart3 className="w-4 h-4" /> Score Card
+        </button>
+        <button 
+          onClick={() => setActiveTab('solutions')} 
+          className={`py-3 font-medium text-sm border-b-2 flex items-center gap-2 transition ${activeTab === 'solutions' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
+        >
+          <List className="w-4 h-4" /> Solutions & Report
+        </button>
+        <button 
+          onClick={() => setActiveTab('leaderboard')} 
+          className={`py-3 font-medium text-sm border-b-2 flex items-center gap-2 transition ${activeTab === 'leaderboard' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
+        >
+          <Trophy className="w-4 h-4" /> Leaderboard
+        </button>
+        <button 
+          onClick={() => setActiveTab('compare')} 
+          className={`py-3 font-medium text-sm border-b-2 flex items-center gap-2 transition ${activeTab === 'compare' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
+        >
+          <Percent className="w-4 h-4" /> Compare with Topper
+        </button>
+      </div>
+
       {/* MAIN CONTENT */}
-      <div className="flex flex-1 overflow-hidden bg-white">
+      <div className="flex flex-1 overflow-hidden bg-gray-50">
         
-        {/* LEFT PANE - QUESTION & OPTIONS */}
-        <div className="flex-1 flex flex-col overflow-y-auto">
+        {activeTab === 'solutions' && (
+          <>
+          {/* LEFT PANE - QUESTION & OPTIONS */}
+          <div className="flex-1 flex flex-col overflow-y-auto bg-white border-r border-gray-200">
           {/* Question Header */}
           <div className="p-4 border-b border-gray-200 flex flex-wrap justify-between items-center gap-4 bg-gray-50">
             <div className="flex items-center gap-3">
@@ -356,6 +397,178 @@ export default function AnalysisClient({ submission }: { submission: any }) {
             </div>
           </div>
         </div>
+        </>
+        )}
+
+        {/* SCORE CARD TAB */}
+        {activeTab === 'scorecard' && (
+          <div className="flex-1 overflow-y-auto p-8">
+            <div className="max-w-4xl mx-auto space-y-8">
+              
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
+                <h2 className="text-2xl font-bold text-gray-800 mb-6">Performance Summary</h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-blue-50 rounded-xl p-6 border border-blue-100 flex flex-col items-center justify-center text-center">
+                    <span className="text-blue-600 font-bold text-sm uppercase tracking-wider mb-2">Total Score</span>
+                    <span className="text-4xl font-extrabold text-blue-900">{submission.score} <span className="text-xl text-blue-500 font-medium">/ {submission.maxScore}</span></span>
+                  </div>
+                  <div className="bg-purple-50 rounded-xl p-6 border border-purple-100 flex flex-col items-center justify-center text-center">
+                    <span className="text-purple-600 font-bold text-sm uppercase tracking-wider mb-2">Accuracy</span>
+                    <span className="text-4xl font-extrabold text-purple-900">
+                      {correctCount + incorrectCount > 0 ? Math.round((correctCount / (correctCount + incorrectCount)) * 100) : 0}%
+                    </span>
+                  </div>
+                  <div className="bg-green-50 rounded-xl p-6 border border-green-100 flex flex-col items-center justify-center text-center">
+                    <span className="text-green-600 font-bold text-sm uppercase tracking-wider mb-2">Attempt Rate</span>
+                    <span className="text-4xl font-extrabold text-green-900">
+                      {Math.round(((correctCount + incorrectCount) / questions.length) * 100)}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
+                  <h3 className="text-lg font-bold text-gray-800 mb-4">Question Breakdown</h3>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg border border-green-100">
+                      <div className="flex items-center gap-2 text-green-700 font-medium"><CheckCircle2 className="w-5 h-5" /> Correct</div>
+                      <span className="font-bold text-green-800 text-lg">{correctCount}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg border border-red-100">
+                      <div className="flex items-center gap-2 text-red-700 font-medium"><XCircle className="w-5 h-5" /> Incorrect</div>
+                      <span className="font-bold text-red-800 text-lg">{incorrectCount}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="flex items-center gap-2 text-gray-600 font-medium"><div className="w-5 h-5 border-2 border-gray-400 rounded-sm"></div> Unattempted</div>
+                      <span className="font-bold text-gray-800 text-lg">{unattemptedCount}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
+                  <h3 className="text-lg font-bold text-gray-800 mb-4">Accuracy Breakdown</h3>
+                  <div className="flex items-center justify-center h-48 bg-white rounded-xl">
+                    {(() => {
+                      const totalQ = questions.length || 1;
+                      const correctPct = (correctCount / totalQ) * 100;
+                      const incorrectPct = (incorrectCount / totalQ) * 100;
+                      const unattemptedPct = (unattemptedCount / totalQ) * 100;
+                      return (
+                        <div 
+                          className="relative w-40 h-40 rounded-full shadow-inner"
+                          style={{
+                            background: `conic-gradient(
+                              #22c55e 0% ${correctPct}%, 
+                              #ef4444 ${correctPct}% ${correctPct + incorrectPct}%, 
+                              #e5e7eb ${correctPct + incorrectPct}% 100%
+                            )`
+                          }}
+                        >
+                          <div className="absolute inset-2 bg-white rounded-full flex items-center justify-center shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)]">
+                            <div className="text-center">
+                              <span className="block text-2xl font-bold text-gray-800">
+                                {correctCount + incorrectCount > 0 ? Math.round((correctCount / (correctCount + incorrectCount)) * 100) : 0}%
+                              </span>
+                              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-0.5 block">Accuracy</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                  <div className="flex justify-center gap-4 mt-4 text-xs font-medium text-gray-600">
+                    <div className="flex items-center gap-1"><div className="w-3 h-3 bg-green-500 rounded-sm"></div> Correct</div>
+                    <div className="flex items-center gap-1"><div className="w-3 h-3 bg-red-500 rounded-sm"></div> Incorrect</div>
+                    <div className="flex items-center gap-1"><div className="w-3 h-3 bg-gray-200 rounded-sm border border-gray-300"></div> Unattempted</div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        )}
+
+        {/* LEADERBOARD TAB */}
+        {activeTab === 'leaderboard' && (
+          <div className="flex-1 overflow-y-auto p-8">
+            <div className="max-w-4xl mx-auto">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="p-6 bg-gray-50 border-b border-gray-200">
+                  <h2 className="text-xl font-bold text-gray-800">Test Leaderboard</h2>
+                  <p className="text-gray-500 text-sm mt-1">See how you rank against other aspirants.</p>
+                </div>
+                {leaderboard.length === 0 ? (
+                  <div className="p-8 text-center text-gray-500">No submissions yet.</div>
+                ) : (
+                  <table className="w-full text-left">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Rank</th>
+                        <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Student</th>
+                        <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Score</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {leaderboard.map((lb: any) => (
+                        <tr key={lb.userId} className={`${lb.userId === currentUserId ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              {lb.rank === 1 && <Trophy className="w-5 h-5 text-yellow-500 mr-2" />}
+                              {lb.rank === 2 && <Trophy className="w-5 h-5 text-gray-400 mr-2" />}
+                              {lb.rank === 3 && <Trophy className="w-5 h-5 text-amber-600 mr-2" />}
+                              <span className={`font-bold ${lb.rank <= 3 ? 'text-gray-900' : 'text-gray-600'}`}>#{lb.rank}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
+                                {lb.name.charAt(0).toUpperCase()}
+                              </div>
+                              <span className="font-medium text-gray-900">{lb.name} {lb.userId === currentUserId && '(You)'}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="font-bold text-gray-900">{lb.score}</span>
+                            <span className="text-gray-400 text-sm ml-1">/ {lb.maxScore}</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* COMPARE TAB */}
+        {activeTab === 'compare' && (
+          <div className="flex-1 overflow-y-auto p-8">
+            <div className="max-w-4xl mx-auto">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
+                <h2 className="text-2xl font-bold text-gray-800 mb-6">Compare with Topper</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                  <div className="border border-blue-200 bg-blue-50 rounded-xl p-6 text-center relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-blue-500"></div>
+                    <h4 className="font-bold text-blue-800 mb-2">Your Score</h4>
+                    <span className="text-5xl font-black text-blue-600">{submission.score}</span>
+                  </div>
+                  <div className="border border-yellow-200 bg-yellow-50 rounded-xl p-6 text-center relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-yellow-500"></div>
+                    <h4 className="font-bold text-yellow-800 mb-2">Topper's Score</h4>
+                    <span className="text-5xl font-black text-yellow-600">{topScore}</span>
+                  </div>
+                </div>
+                
+                <div className="bg-gray-50 border border-gray-200 rounded-xl p-6">
+                   <h4 className="font-bold text-gray-800 mb-4">Detailed Breakdown coming soon...</h4>
+                   <p className="text-gray-600">The detailed subject-wise and question-wise comparison with the topper will be available here.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         
       </div>
     </div>

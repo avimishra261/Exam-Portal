@@ -15,7 +15,8 @@ export default function UserTable({
   users, 
   currentUser,
   exams = [],
-  overrides = []
+  overrides = [],
+  bannedStudents = []
 }: { 
   users: UserRow[]; 
   currentUser: { id: string; role: string; isSuperAdmin: boolean };

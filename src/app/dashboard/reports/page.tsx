@@ -79,17 +79,40 @@ export default async function ReportsPage() {
   ];
 
   // Score trend data
-  const scoreTrend = submissions.map(s => {
+  const scoreTrend = await Promise.all(submissions.map(async s => {
     const score = Math.max(0, s.score || 0);
     const max = s.maxScore || 1;
+    
+    // Calculate rank
+    const higherScoresCount = await prisma.submission.count({
+      where: {
+        examId: s.examId,
+        status: 'COMPLETED',
+        score: { gt: score }
+      }
+    });
+    
+    const sameScoreEarlierCount = await prisma.submission.count({
+      where: {
+        examId: s.examId,
+        status: 'COMPLETED',
+        score: score,
+        submittedAt: { lt: s.submittedAt }
+      }
+    });
+    
+    const rank = higherScoresCount + sameScoreEarlierCount + 1;
+
     return {
+      id: s.id,
       title: s.exam.title,
       score: score,
       total: max,
       pct: Math.round((score / max) * 100),
-      date: s.submittedAt
+      date: s.submittedAt,
+      rank
     };
-  });
+  }));
 
   // Best and worst
   const bestTest = scoreTrend.reduce((best, curr) => curr.pct > best.pct ? curr : best, scoreTrend[0]);
@@ -196,10 +219,12 @@ export default async function ReportsPage() {
               <tr className="bg-gray-50 text-gray-600 text-xs font-bold uppercase tracking-wider">
                 <th className="p-4 border-b border-gray-200 rounded-tl-lg">#</th>
                 <th className="p-4 border-b border-gray-200">Test</th>
+                <th className="p-4 border-b border-gray-200">Rank</th>
                 <th className="p-4 border-b border-gray-200">Marks</th>
                 <th className="p-4 border-b border-gray-200">Accuracy</th>
-                <th className="p-4 border-b border-gray-200 w-1/3">Progress</th>
-                <th className="p-4 border-b border-gray-200 rounded-tr-lg">Date</th>
+                <th className="p-4 border-b border-gray-200 w-1/4">Progress</th>
+                <th className="p-4 border-b border-gray-200">Date</th>
+                <th className="p-4 border-b border-gray-200 rounded-tr-lg">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -207,6 +232,7 @@ export default async function ReportsPage() {
                 <tr key={i} className="hover:bg-gray-50/50 transition">
                   <td className="p-4 text-sm font-medium text-gray-500">{i + 1}</td>
                   <td className="p-4 text-sm font-bold text-gray-900">{s.title}</td>
+                  <td className="p-4 text-sm font-bold text-blue-600">#{s.rank}</td>
                   <td className="p-4 text-sm font-medium text-gray-700">{s.score.toFixed(1)} / {s.total}</td>
                   <td className="p-4">
                     <span className={`inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs font-bold ${s.pct >= 70 ? 'bg-green-100 text-green-700' : s.pct >= 40 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
@@ -222,6 +248,11 @@ export default async function ReportsPage() {
                     </div>
                   </td>
                   <td className="p-4 text-xs font-medium text-gray-400">{new Date(s.date).toLocaleDateString()}</td>
+                  <td className="p-4">
+                    <a href={`/dashboard/analysis/${s.id}`} className="text-sm font-medium text-blue-600 hover:text-blue-800">
+                      View Analysis
+                    </a>
+                  </td>
                 </tr>
               ))}
             </tbody>

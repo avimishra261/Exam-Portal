@@ -41,7 +41,38 @@ export default async function DetailedAnalysisPage({ params }: PageProps) {
     redirect('/dashboard/analysis');
   }
 
-  // Serialize dates to avoid passing Date objects to client component
+  // Fetch Leaderboard
+  const allSubmissions = await prisma.submission.findMany({
+    where: { examId: submission.examId, status: 'COMPLETED' },
+    include: { user: { select: { id: true, name: true, email: true } } },
+    orderBy: [
+      { score: 'desc' },
+      { submittedAt: 'asc' }
+    ]
+  });
+
+  const topScore = allSubmissions.length > 0 ? (allSubmissions[0].score || 0) : 0;
+  
+  // Create leaderboard array, handling anonymous if needed
+  let rank = 1;
+  const leaderboard = allSubmissions.map((sub, index) => {
+    const score = sub.score || 0;
+    const prevScore = index > 0 ? (allSubmissions[index - 1].score || 0) : 0;
+    
+    if (index > 0 && score < prevScore) {
+      rank = index + 1;
+    }
+    return {
+      rank,
+      userId: sub.userId,
+      name: submission.exam.leaderboardAnonymous && sub.userId !== user.id 
+        ? 'Anonymous Student' 
+        : (sub.user.name || sub.user.email),
+      score: score,
+      maxScore: sub.maxScore,
+    };
+  });
+
   const serializedSubmission = {
     ...submission,
     submittedAt: submission.submittedAt.toISOString(),
@@ -52,13 +83,20 @@ export default async function DetailedAnalysisPage({ params }: PageProps) {
       createdAt: submission.exam.createdAt.toISOString(),
     },
     user: {
+      id: submission.user.id,
       email: submission.user.email,
+      name: submission.user.name,
     }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-[#f0f2f5] overflow-hidden">
-      <AnalysisClient submission={serializedSubmission as any} />
+      <AnalysisClient 
+        submission={serializedSubmission as any} 
+        leaderboard={leaderboard}
+        topScore={topScore}
+        currentUserId={user.id}
+      />
     </div>
   );
 }
