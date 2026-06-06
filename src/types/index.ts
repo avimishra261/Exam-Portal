@@ -61,6 +61,7 @@ export interface QuestionInput {
   mediaFileId?: string;
   correctNumeric?: number | string;
   correctText?: string;
+  explanation?: string;
   options: { text: string; isCorrect: boolean }[];
 }
 

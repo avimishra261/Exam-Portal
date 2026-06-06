@@ -1,13 +1,20 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
-export default function Calculator({ onClose }: { onClose: () => void }) {
+interface CalculatorProps {
+  onClose: () => void;
+}
+
+export default function Calculator({ onClose }: CalculatorProps) {
   const [display, setDisplay] = useState('0');
-  const [memory, setMemory] = useState<number>(0);
-  const [equation, setEquation] = useState<string>('');
+  const [equation, setEquation] = useState('');
   const [isRad, setIsRad] = useState(true);
-  
+  const [memory, setMemory] = useState(0);
+  const [isNewValue, setIsNewValue] = useState(false);
+  const [operator, setOperator] = useState<string | null>(null);
+  const [prevValue, setPrevValue] = useState<number | null>(null);
+
   // Dragging state
   const [position, setPosition] = useState({ x: 100, y: 100 });
   const [isDragging, setIsDragging] = useState(false);
@@ -28,7 +35,7 @@ export default function Calculator({ onClose }: { onClose: () => void }) {
         });
       }
     };
-    
+
     const handleMouseUp = () => {
       setIsDragging(false);
     };
@@ -45,6 +52,7 @@ export default function Calculator({ onClose }: { onClose: () => void }) {
   }, [isDragging]);
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target instanceof HTMLButtonElement) return; // Don't drag if clicking buttons
     setIsDragging(true);
     dragRef.current = {
       startX: e.clientX - position.x,
@@ -52,85 +60,131 @@ export default function Calculator({ onClose }: { onClose: () => void }) {
     };
   };
 
-  const appendNum = (num: string) => {
-    if (display === '0' || display === 'Error') setDisplay(num);
-    else setDisplay(display + num);
+  const parseValue = (val: string) => {
+    if (val === 'Error' || val === 'NaN') return 0;
+    return parseFloat(val) || 0;
   };
 
-  const appendOp = (op: string) => {
-    setEquation(display + ' ' + op + ' ');
-    setDisplay('0');
-  };
-
-  const calculate = () => {
-    try {
-      if (!equation) return;
-      const fullEq = equation + display;
-      const parts = fullEq.split(' ');
-      if (parts.length >= 3) {
-        const a = parseFloat(parts[0]);
-        const op = parts[1];
-        const b = parseFloat(parts[2]);
-        let res = 0;
-        switch(op) {
-          case '+': res = a + b; break;
-          case '-': res = a - b; break;
-          case '*': res = a * b; break;
-          case '/': res = b !== 0 ? a / b : NaN; break;
-          case 'Mod': res = a % b; break;
-          case 'y^x': res = Math.pow(a, b); break;
-        }
-        setDisplay(Number.isNaN(res) ? 'Error' : parseFloat(res.toFixed(10)).toString());
-        setEquation('');
-      }
-    } catch {
-      setDisplay('Error');
+  const handleNum = (num: string) => {
+    if (isNewValue || display === '0' || display === 'Error') {
+      setDisplay(num);
+      setIsNewValue(false);
+    } else {
+      setDisplay(display + num);
     }
   };
 
-  const calculateMath = (func: (n: number) => number) => {
-    try {
-      const n = parseFloat(display);
-      const res = func(n);
-      setDisplay(Number.isNaN(res) ? 'Error' : parseFloat(res.toFixed(10)).toString());
-    } catch {
-      setDisplay('Error');
-    }
-  };
-
-  const toRad = (n: number) => isRad ? n : n * Math.PI / 180;
-  
-  // Custom functions
-  const handleSign = () => {
-    if (display !== '0' && display !== 'Error') {
-      setDisplay(display.startsWith('-') ? display.slice(1) : '-' + display);
+  const handleDot = () => {
+    if (isNewValue || display === 'Error') {
+      setDisplay('0.');
+      setIsNewValue(false);
+    } else if (!display.includes('.')) {
+      setDisplay(display + '.');
     }
   };
 
   const handleBackspace = () => {
-    if (display !== 'Error' && display.length > 1) {
+    if (isNewValue || display === 'Error') return;
+    if (display.length > 1) {
       setDisplay(display.slice(0, -1));
     } else {
       setDisplay('0');
     }
   };
 
-  const btnClass = "bg-[#f5f5f5] border border-[#ccc] text-[#333] hover:bg-[#e6e6e6] text-xs py-1.5 px-1 font-semibold rounded-sm active:bg-[#d4d4d4] transition-colors shadow-sm";
-  const numClass = "bg-[#ffffff] border border-[#ccc] text-black font-bold hover:bg-[#e6e6e6] text-sm py-1.5 px-1 rounded-sm active:bg-[#d4d4d4] transition-colors shadow-sm";
-  const opClass = "bg-[#f5f5f5] border border-[#ccc] text-black font-bold hover:bg-[#e6e6e6] text-sm py-1.5 px-1 rounded-sm active:bg-[#d4d4d4] transition-colors shadow-sm";
+  const clearEntry = () => {
+    setDisplay('0');
+  };
+
+  const clearAll = () => {
+    setDisplay('0');
+    setEquation('');
+    setPrevValue(null);
+    setOperator(null);
+    setIsNewValue(false);
+  };
+
+  const calculate = (a: number, b: number, op: string) => {
+    switch (op) {
+      case '+': return a + b;
+      case '-': return a - b;
+      case '*': return a * b;
+      case '/': return b === 0 ? NaN : a / b;
+      case 'Mod': return a % b;
+      case 'y^x': return Math.pow(a, b);
+      case 'yroot': return Math.pow(a, 1 / b);
+      default: return b;
+    }
+  };
+
+  const handleOp = (op: string) => {
+    const current = parseValue(display);
+    if (prevValue !== null && operator && !isNewValue) {
+      const result = calculate(prevValue, current, operator);
+      const output = Number.isNaN(result) ? 'Error' : parseFloat(result.toFixed(10)).toString();
+      setDisplay(output);
+      setPrevValue(Number.isNaN(result) ? null : result);
+      setEquation(output + ' ' + op + ' ');
+    } else {
+      setPrevValue(current);
+      setEquation(current + ' ' + op + ' ');
+    }
+    setOperator(op);
+    setIsNewValue(true);
+  };
+
+  const handleEqual = () => {
+    if (operator && prevValue !== null) {
+      const current = parseValue(display);
+      const result = calculate(prevValue, current, operator);
+      const output = Number.isNaN(result) ? 'Error' : parseFloat(result.toFixed(10)).toString();
+      setDisplay(output);
+      setEquation('');
+      setPrevValue(null);
+      setOperator(null);
+      setIsNewValue(true);
+    }
+  };
+
+  const applyMath = (funcName: string, displaySymbol: string, mathFunc: (x: number) => number) => {
+    const current = parseValue(display);
+    const result = mathFunc(current);
+    setDisplay(Number.isNaN(result) ? 'Error' : parseFloat(result.toFixed(10)).toString());
+    setEquation(`${displaySymbol}(${current})`);
+    setIsNewValue(true);
+  };
+
+  const handleSign = () => {
+    if (display !== '0' && display !== 'Error') {
+      setDisplay(display.startsWith('-') ? display.slice(1) : '-' + display);
+    }
+  };
+
+  // Conversions for trig functions
+  const toRad = (val: number) => isRad ? val : val * (Math.PI / 180);
+  const fromRad = (val: number) => isRad ? val : val * (180 / Math.PI);
+
+  const btnClass = "bg-[#f5f5f5] border border-[#ccc] text-[#333] hover:bg-[#e6e6e6] text-xs py-1.5 px-1 font-semibold rounded-sm active:bg-[#d4d4d4] transition-colors shadow-sm cursor-pointer";
+  const numClass = "bg-[#ffffff] border border-[#ccc] text-black font-bold hover:bg-[#e6e6e6] text-sm py-1.5 px-1 rounded-sm active:bg-[#d4d4d4] transition-colors shadow-sm cursor-pointer";
+  const opClass = "bg-[#f5f5f5] border border-[#ccc] text-black font-bold hover:bg-[#e6e6e6] text-sm py-1.5 px-1 rounded-sm active:bg-[#d4d4d4] transition-colors shadow-sm cursor-pointer";
 
   return (
-    <div 
+    <div
       className="fixed z-50 bg-[#e8e8e8] shadow-[0_5px_15px_rgba(0,0,0,0.5)] border border-[#a0a0a0] w-[450px] select-none rounded-t font-sans"
       style={{ left: `${position.x}px`, top: `${position.y}px` }}
     >
       {/* Header */}
-      <div 
+      <div
         className="bg-[#337ab7] text-white px-3 py-2 flex justify-between items-center cursor-move rounded-t"
         onMouseDown={handleMouseDown}
       >
         <span className="font-bold text-sm tracking-wide">Calculator</span>
-        <button onClick={(e) => { e.stopPropagation(); onClose(); }} className="text-white hover:text-red-200 font-bold px-2 text-lg leading-none cursor-pointer">×</button>
+        <button 
+          onClick={(e) => { e.stopPropagation(); onClose(); }} 
+          className="text-white hover:text-red-200 font-bold px-2 text-lg leading-none cursor-pointer"
+        >
+          ×
+        </button>
       </div>
 
       <div className="p-3 bg-[#d9e4f1]">
@@ -154,70 +208,70 @@ export default function Calculator({ onClose }: { onClose: () => void }) {
         <div className="grid grid-cols-2 gap-3">
           {/* Left Scientific Panel */}
           <div className="grid grid-cols-3 gap-1.5">
-            <button className={btnClass}>MC</button>
-            <button className={btnClass} onClick={() => setDisplay(memory.toString())}>MR</button>
-            <button className={btnClass} onClick={() => setMemory(parseFloat(display))}>MS</button>
-            <button className={btnClass} onClick={() => setMemory(memory + parseFloat(display))}>M+</button>
-            <button className={btnClass} onClick={() => setMemory(memory - parseFloat(display))}>M-</button>
+            <button className={btnClass} onClick={() => setMemory(0)}>MC</button>
+            <button className={btnClass} onClick={() => { setDisplay(memory.toString()); setIsNewValue(true); }}>MR</button>
+            <button className={btnClass} onClick={() => setMemory(parseValue(display))}>MS</button>
+            <button className={btnClass} onClick={() => setMemory(memory + parseValue(display))}>M+</button>
+            <button className={btnClass} onClick={() => setMemory(memory - parseValue(display))}>M-</button>
             <button className={btnClass} onClick={handleBackspace}>←</button>
 
-            <button className={btnClass} onClick={() => calculateMath(n => Math.sin(toRad(n)))}>sin</button>
-            <button className={btnClass} onClick={() => calculateMath(n => Math.cos(toRad(n)))}>cos</button>
-            <button className={btnClass} onClick={() => calculateMath(n => Math.tan(toRad(n)))}>tan</button>
+            <button className={btnClass} onClick={() => applyMath('sin', 'sin', (x) => Math.sin(toRad(x)))}>sin</button>
+            <button className={btnClass} onClick={() => applyMath('cos', 'cos', (x) => Math.cos(toRad(x)))}>cos</button>
+            <button className={btnClass} onClick={() => applyMath('tan', 'tan', (x) => Math.tan(toRad(x)))}>tan</button>
 
-            <button className={btnClass} onClick={() => calculateMath(Math.asin)}>sin⁻¹</button>
-            <button className={btnClass} onClick={() => calculateMath(Math.acos)}>cos⁻¹</button>
-            <button className={btnClass} onClick={() => calculateMath(Math.atan)}>tan⁻¹</button>
+            <button className={btnClass} onClick={() => applyMath('asin', 'asin', (x) => fromRad(Math.asin(x)))}>sin⁻¹</button>
+            <button className={btnClass} onClick={() => applyMath('acos', 'acos', (x) => fromRad(Math.acos(x)))}>cos⁻¹</button>
+            <button className={btnClass} onClick={() => applyMath('atan', 'atan', (x) => fromRad(Math.atan(x)))}>tan⁻¹</button>
 
-            <button className={btnClass} onClick={() => calculateMath(Math.sinh)}>sinh</button>
-            <button className={btnClass} onClick={() => calculateMath(Math.cosh)}>cosh</button>
-            <button className={btnClass} onClick={() => calculateMath(Math.tanh)}>tanh</button>
+            <button className={btnClass} onClick={() => applyMath('sinh', 'sinh', Math.sinh)}>sinh</button>
+            <button className={btnClass} onClick={() => applyMath('cosh', 'cosh', Math.cosh)}>cosh</button>
+            <button className={btnClass} onClick={() => applyMath('tanh', 'tanh', Math.tanh)}>tanh</button>
 
-            <button className={btnClass} onClick={() => calculateMath(n => n*n)}>x²</button>
-            <button className={btnClass} onClick={() => calculateMath(n => n*n*n)}>x³</button>
-            <button className={btnClass} onClick={() => appendOp('y^x')}>xʸ</button>
+            <button className={btnClass} onClick={() => applyMath('x^2', 'sqr', (x) => x * x)}>x²</button>
+            <button className={btnClass} onClick={() => applyMath('x^3', 'cube', (x) => x * x * x)}>x³</button>
+            <button className={btnClass} onClick={() => handleOp('y^x')}>xʸ</button>
 
-            <button className={btnClass} onClick={() => calculateMath(n => Math.pow(10, n))}>10ˣ</button>
-            <button className={btnClass} onClick={() => calculateMath(Math.exp)}>eˣ</button>
-            <button className={btnClass} onClick={() => calculateMath(n => 1/n)}>1/x</button>
+            <button className={btnClass} onClick={() => applyMath('10^x', '10^', (x) => Math.pow(10, x))}>10ˣ</button>
+            <button className={btnClass} onClick={() => applyMath('e^x', 'e^', Math.exp)}>eˣ</button>
+            <button className={btnClass} onClick={() => applyMath('1/x', '1/', (x) => 1 / x)}>1/x</button>
 
-            <button className={btnClass} onClick={() => calculateMath(Math.sqrt)}>√</button>
-            <button className={btnClass} onClick={() => calculateMath(Math.cbrt)}>³√</button>
-            <button className={btnClass} onClick={() => appendOp('y√x')}>ʸ√x</button>
+            <button className={btnClass} onClick={() => applyMath('sqrt', 'sqrt', Math.sqrt)}>√</button>
+            <button className={btnClass} onClick={() => applyMath('cbrt', 'cbrt', Math.cbrt)}>³√</button>
+            <button className={btnClass} onClick={() => handleOp('yroot')}>ʸ√x</button>
           </div>
 
           {/* Right Numpad Panel */}
           <div className="grid grid-cols-4 gap-1.5">
-            <button className={btnClass} onClick={() => setDisplay('0')}>CE</button>
-            <button className={btnClass} onClick={() => { setDisplay('0'); setEquation(''); }}>C</button>
+            <button className={btnClass} onClick={clearEntry}>CE</button>
+            <button className={btnClass} onClick={clearAll}>C</button>
             <button className={btnClass} onClick={handleSign}>±</button>
-            <button className={btnClass} onClick={() => calculateMath(Math.sqrt)}>√</button>
+            <button className={btnClass} onClick={() => applyMath('sqrt', 'sqrt', Math.sqrt)}>√</button>
 
-            <button className={numClass} onClick={() => appendNum('7')}>7</button>
-            <button className={numClass} onClick={() => appendNum('8')}>8</button>
-            <button className={numClass} onClick={() => appendNum('9')}>9</button>
-            <button className={opClass} onClick={() => appendOp('/')}>/</button>
+            <button className={numClass} onClick={() => handleNum('7')}>7</button>
+            <button className={numClass} onClick={() => handleNum('8')}>8</button>
+            <button className={numClass} onClick={() => handleNum('9')}>9</button>
+            <button className={opClass} onClick={() => handleOp('/')}>/</button>
 
-            <button className={numClass} onClick={() => appendNum('4')}>4</button>
-            <button className={numClass} onClick={() => appendNum('5')}>5</button>
-            <button className={numClass} onClick={() => appendNum('6')}>6</button>
-            <button className={opClass} onClick={() => appendOp('*')}>*</button>
+            <button className={numClass} onClick={() => handleNum('4')}>4</button>
+            <button className={numClass} onClick={() => handleNum('5')}>5</button>
+            <button className={numClass} onClick={() => handleNum('6')}>6</button>
+            <button className={opClass} onClick={() => handleOp('*')}>*</button>
 
-            <button className={numClass} onClick={() => appendNum('1')}>1</button>
-            <button className={numClass} onClick={() => appendNum('2')}>2</button>
-            <button className={numClass} onClick={() => appendNum('3')}>3</button>
-            <button className={opClass} onClick={() => appendOp('-')}>-</button>
+            <button className={numClass} onClick={() => handleNum('1')}>1</button>
+            <button className={numClass} onClick={() => handleNum('2')}>2</button>
+            <button className={numClass} onClick={() => handleNum('3')}>3</button>
+            <button className={opClass} onClick={() => handleOp('-')}>-</button>
 
-            <button className={numClass} onClick={() => appendNum('0')}>0</button>
-            <button className={numClass} onClick={() => appendNum('.')}>.</button>
-            <button className={opClass} onClick={calculate}>=</button>
-            <button className={opClass} onClick={() => appendOp('+')}>+</button>
+            <button className={numClass} onClick={() => handleNum('0')}>0</button>
+            <button className={numClass} onClick={handleDot}>.</button>
+            <button className={opClass} onClick={handleEqual}>=</button>
+            <button className={opClass} onClick={() => handleOp('+')}>+</button>
 
             {/* Extra bottom row */}
-            <button className={btnClass} onClick={() => calculateMath(Math.log)}>ln</button>
-            <button className={btnClass} onClick={() => calculateMath(Math.log10)}>log</button>
-            <button className={btnClass} onClick={() => setDisplay(Math.PI.toString())}>π</button>
-            <button className={btnClass} onClick={() => setDisplay(Math.E.toString())}>e</button>
+            <button className={btnClass} onClick={() => applyMath('ln', 'ln', Math.log)}>ln</button>
+            <button className={btnClass} onClick={() => applyMath('log', 'log', Math.log10)}>log</button>
+            <button className={btnClass} onClick={() => { setDisplay(Math.PI.toString()); setIsNewValue(true); }}>π</button>
+            <button className={btnClass} onClick={() => { setDisplay(Math.E.toString()); setIsNewValue(true); }}>e</button>
           </div>
         </div>
       </div>

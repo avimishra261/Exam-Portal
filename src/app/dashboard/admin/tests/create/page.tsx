@@ -19,6 +19,7 @@ interface Question {
   options: Option[];
   correctNumeric?: string;
   correctText?: string;
+  explanation?: string;
   maxMarks: string;
 }
 
@@ -222,6 +223,12 @@ export default function CreateTestPage() {
                 <textarea form="test-form" value={q.correctText || ''} onChange={e => updateQuestion(q.id, { correctText: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white" rows={2} />
               </div>
             )}
+
+            <div className="mt-4">
+              <label className="block text-sm text-gray-600 mb-1">Explanation / Reasoning (Optional)</label>
+              <textarea form="test-form" value={q.explanation || ''} onChange={e => updateQuestion(q.id, { explanation: e.target.value })} placeholder="Explain why the answer is correct..." className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white" rows={2} />
+              <p className="text-xs text-gray-400 mt-1">This will be shown to the student in the analysis report after the test.</p>
+            </div>
           </div>
         </div>
       ))}

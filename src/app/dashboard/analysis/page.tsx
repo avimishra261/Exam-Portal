@@ -182,10 +182,15 @@ export default async function AnalysisPage() {
                             <p className="text-sm font-medium text-gray-800 mb-2">{ans.question.text}</p>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
                               <p className="text-gray-600">Your answer:<br/><span className="font-medium text-gray-900">{yourAnswer}</span></p>
-                              {!isCorrect && ans.question.type !== 'DESCRIPTIVE' && (
+                              {ans.question.type !== 'DESCRIPTIVE' && (
                                 <p className="text-green-700">Correct Answer:<br/><span className="font-medium">{correctAnswer}</span></p>
                               )}
                             </div>
+                            {ans.question.explanation && (
+                              <div className="mt-3 p-3 bg-blue-50 border border-blue-100 rounded text-sm text-blue-900">
+                                <span className="font-bold">Explanation:</span> {ans.question.explanation}
+                              </div>
+                            )}
                           </div>
                         </div>
                         <div className={`flex-shrink-0 text-right md:text-center px-4 py-2 rounded-lg border ${isCorrect ? 'bg-green-100 border-green-200 text-green-800' : isNegative ? 'bg-red-100 border-red-200 text-red-800' : 'bg-gray-100 border-gray-200 text-gray-600'}`}>

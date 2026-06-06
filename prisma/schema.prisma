@@ -51,6 +51,7 @@ model Question {
 
   correctNumeric  Float?
   correctText     String?
+  explanation     String?
 
   answers         SubmissionAnswer[]
 }

@@ -93,6 +93,7 @@ export async function createExamAction(formData: FormData) {
               maxMarks: isNaN(parsedMaxMarks) ? 1 : parsedMaxMarks,
               correctNumeric: parsedCorrectNumeric !== null && !isNaN(parsedCorrectNumeric) ? parsedCorrectNumeric : null,
               correctText: q.type === 'DESCRIPTIVE' ? q.correctText : null,
+              explanation: q.explanation || null,
               options: ['MCQ', 'MSQ'].includes(q.type) ? {
                 create: q.options.map((opt) => ({
                   text: opt.text,
