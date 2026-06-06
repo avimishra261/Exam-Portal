@@ -220,29 +220,29 @@ export default function AnalysisClient({
               <div className="space-y-6 max-w-2xl mt-4">
                 
                 {/* Show User's Answer */}
-                {currentAns?.numericAnswer !== undefined && currentAns?.numericAnswer !== null && (
-                  <div className="flex items-center gap-4">
-                    <div className={`flex-1 px-4 py-3 border rounded-sm text-xl bg-white
-                      ${currentAns.numericAnswer === currentQuestion.correctNumeric 
-                        ? 'border-[#28a745] text-[#28a745]' 
-                        : 'border-[#e83e8c] text-[#e83e8c]'}`}>
-                      {currentAns.numericAnswer}
-                    </div>
-                    <div className={`flex items-center gap-2 text-white px-4 py-2 rounded-r-md relative text-sm font-bold min-w-[160px]
-                      ${currentAns.numericAnswer === currentQuestion.correctNumeric ? 'bg-[#28a745]' : 'bg-[#e83e8c]'}`}>
-                      <div className={`absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 rotate-45 rounded-sm
-                        ${currentAns.numericAnswer === currentQuestion.correctNumeric ? 'bg-[#28a745]' : 'bg-[#e83e8c]'}`}></div>
-                      {currentAns.numericAnswer === currentQuestion.correctNumeric ? <CheckCircle2 className="w-4 h-4 relative z-10" /> : <XCircle className="w-4 h-4 relative z-10" />}
-                      <span className="relative z-10">My Answer</span>
-                    </div>
+                <div className="flex items-center gap-4">
+                  <div className={`flex-1 px-4 py-3 border rounded-sm text-xl bg-white
+                    ${currentAns?.numericAnswer === currentQuestion.correctNumeric 
+                      ? 'border-[#28a745] text-[#28a745]' 
+                      : currentAns?.numericAnswer !== undefined && currentAns?.numericAnswer !== null
+                        ? 'border-[#e83e8c] text-[#e83e8c]'
+                        : 'border-gray-400 text-gray-500'}`}>
+                    {currentAns?.numericAnswer !== undefined && currentAns?.numericAnswer !== null ? currentAns.numericAnswer : <span className="text-gray-400 italic text-sm">Not attempted</span>}
                   </div>
-                )}
+                  <div className={`flex items-center gap-2 text-white px-4 py-2 rounded-r-md relative text-sm font-bold min-w-[160px]
+                    ${currentAns?.numericAnswer === currentQuestion.correctNumeric ? 'bg-[#28a745]' : currentAns?.numericAnswer !== undefined && currentAns?.numericAnswer !== null ? 'bg-[#e83e8c]' : 'bg-gray-400'}`}>
+                    <div className={`absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 rotate-45 rounded-sm
+                      ${currentAns?.numericAnswer === currentQuestion.correctNumeric ? 'bg-[#28a745]' : currentAns?.numericAnswer !== undefined && currentAns?.numericAnswer !== null ? 'bg-[#e83e8c]' : 'bg-gray-400'}`}></div>
+                    {currentAns?.numericAnswer === currentQuestion.correctNumeric ? <CheckCircle2 className="w-4 h-4 relative z-10" /> : <User className="w-4 h-4 relative z-10" />}
+                    <span className="relative z-10">My Answer</span>
+                  </div>
+                </div>
 
                 {/* Show Correct Answer */}
                 {(showSolution || showAllSolutions) && (
                   <div className="flex items-center gap-4">
                     <div className="flex-1 px-4 py-3 border border-[#28a745] rounded-sm text-[#28a745] bg-white text-xl">
-                      {currentQuestion.correctNumeric}
+                      {currentQuestion.correctNumeric ?? "N/A"}
                     </div>
                     <div className="flex items-center gap-2 text-white bg-[#28a745] px-4 py-2 rounded-r-md relative text-sm font-bold min-w-[160px]">
                       <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 bg-[#28a745] rotate-45 rounded-sm"></div>
@@ -257,22 +257,22 @@ export default function AnalysisClient({
             {/* Descriptive Rendering */}
             {currentQuestion.type === 'DESCRIPTIVE' && (
               <div className="space-y-6 max-w-2xl mt-4">
-                {currentAns?.textAnswer && (
-                  <div className="flex items-start gap-4">
-                    <div className={`flex-1 px-4 py-3 border rounded-sm text-base bg-white border-blue-500 text-gray-800`}>
-                      {currentAns.textAnswer}
-                    </div>
-                    <div className={`flex items-center gap-2 text-white px-4 py-2 rounded-r-md relative text-sm font-bold min-w-[160px] bg-blue-500 mt-2`}>
-                      <div className={`absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 rotate-45 rounded-sm bg-blue-500`}></div>
-                      <User className="w-4 h-4 relative z-10" />
-                      <span className="relative z-10">My Answer</span>
-                    </div>
+                
+                <div className="flex items-start gap-4">
+                  <div className={`flex-1 px-4 py-3 border rounded-sm text-base bg-white ${currentAns?.textAnswer ? 'border-blue-500 text-gray-800' : 'border-gray-400 text-gray-400'}`}>
+                    {currentAns?.textAnswer || <span className="italic">No answer provided</span>}
                   </div>
-                )}
-                {(showSolution || showAllSolutions) && (currentQuestion.correctText || currentQuestion.explanation) && (
+                  <div className={`flex items-center gap-2 text-white px-4 py-2 rounded-r-md relative text-sm font-bold min-w-[160px] ${currentAns?.textAnswer ? 'bg-blue-500' : 'bg-gray-400'} mt-2`}>
+                    <div className={`absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 rotate-45 rounded-sm ${currentAns?.textAnswer ? 'bg-blue-500' : 'bg-gray-400'}`}></div>
+                    <User className="w-4 h-4 relative z-10" />
+                    <span className="relative z-10">My Answer</span>
+                  </div>
+                </div>
+
+                {(showSolution || showAllSolutions) && (
                   <div className="flex items-start gap-4">
                     <div className="flex-1 px-4 py-3 border border-[#28a745] rounded-sm text-gray-800 bg-white text-base whitespace-pre-wrap">
-                      {currentQuestion.correctText || currentQuestion.explanation}
+                      {currentQuestion.correctText || currentQuestion.explanation || "No correct answer or rubric provided for this question."}
                     </div>
                     <div className="flex items-center gap-2 text-white bg-[#28a745] px-4 py-2 rounded-r-md relative text-sm font-bold min-w-[160px] mt-2">
                       <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 bg-[#28a745] rotate-45 rounded-sm"></div>
