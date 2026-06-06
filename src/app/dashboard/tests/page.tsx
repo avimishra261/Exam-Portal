@@ -23,8 +23,12 @@ export default async function TestsPage() {
   });
   const overrideMap = new Map(overrides.map(o => [o.examId, o.allowedAttempts]));
 
+  const completedSubmissions = submissions.filter(s => s.status === 'COMPLETED');
+  const inProgressSubmissions = submissions.filter(s => s.status === 'IN_PROGRESS');
+  const inProgressMap = new Set(inProgressSubmissions.map(s => s.examId));
+
   const submissionsByExam: Record<string, number> = {};
-  submissions.forEach(s => {
+  completedSubmissions.forEach(s => {
     submissionsByExam[s.examId] = (submissionsByExam[s.examId] || 0) + 1;
   });
 
@@ -124,7 +128,7 @@ export default async function TestsPage() {
                     <div className="flex justify-end gap-2">
                       {tab.label === 'Active' && user.role === 'STUDENT' && (
                         <Link href={`/dashboard/tests/${ex.id}`} className="px-4 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition">
-                          {attemptsTaken > 0 ? 'Retake Test' : 'Take Test'}
+                          {inProgressMap.has(ex.id) ? 'Continue' : (attemptsTaken > 0 ? 'Retake Test' : 'Take Test')}
                         </Link>
                       )}
                       {tab.label === 'Completed' && (

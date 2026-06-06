@@ -72,6 +72,9 @@ model Submission {
   score       Float?
   maxScore    Float?
   submittedAt DateTime @default(now())
+  
+  status      String   @default("COMPLETED")
+  timeLeft    Int?
 
   exam        Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)

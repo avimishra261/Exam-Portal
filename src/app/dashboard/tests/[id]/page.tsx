@@ -46,9 +46,29 @@ export default async function TakeTestPage({ params }: { params: Promise<{ id: s
     );
   }
 
-  const pastSubmissionsCount = await prisma.submission.count({
-    where: { examId: exam.id, userId: user.id }
+  const completedSubmissionsCount = await prisma.submission.count({
+    where: { examId: exam.id, userId: user.id, status: 'COMPLETED' }
   });
+
+  const draftSubmission = await prisma.submission.findFirst({
+    where: { examId: exam.id, userId: user.id, status: 'IN_PROGRESS' },
+    include: { answers: true }
+  });
+
+  const initialAnswers: Record<string, any> = {};
+  if (draftSubmission) {
+    draftSubmission.answers.forEach(a => {
+      if (a.selectedOptionIds) {
+        const q = exam.questions.find(q => q.id === a.questionId);
+        if (q?.type === 'MSQ') initialAnswers[a.questionId] = a.selectedOptionIds.split(',');
+        else initialAnswers[a.questionId] = a.selectedOptionIds;
+      } else if (a.numericAnswer !== null) {
+        initialAnswers[a.questionId] = a.numericAnswer.toString();
+      } else if (a.textAnswer !== null) {
+        initialAnswers[a.questionId] = a.textAnswer;
+      }
+    });
+  }
 
   const override = await prisma.attemptOverride.findUnique({
     where: {
@@ -58,7 +78,7 @@ export default async function TakeTestPage({ params }: { params: Promise<{ id: s
 
   const allowedAttempts = override ? override.allowedAttempts : exam.maxAttempts;
 
-  if (pastSubmissionsCount >= allowedAttempts) {
+  if (completedSubmissionsCount >= allowedAttempts && !draftSubmission) {
     return (
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center max-w-lg mx-auto">
         <h2 className="text-xl font-bold text-red-600 mb-2">Attempts Exhausted</h2>
@@ -74,9 +94,13 @@ export default async function TakeTestPage({ params }: { params: Promise<{ id: s
   };
 
   return (
-    <TestEngine 
-      exam={exam as any} 
-      onSubmit={submitAction} 
-    />
+    <div className="fixed inset-0 z-50 bg-white flex flex-col h-screen overflow-hidden">
+      <TestEngine 
+        exam={exam as any} 
+        initialAnswers={initialAnswers}
+        initialTimeLeft={draftSubmission?.timeLeft ?? undefined}
+        onSubmit={submitAction} 
+      />
+    </div>
   );
 }

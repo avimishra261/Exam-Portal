@@ -10,22 +10,32 @@ type AnswerValue = string | string[] | null;
 
 export default function TestEngine({ 
   exam, 
+  initialAnswers = {},
+  initialTimeLeft,
   onSubmit 
 }: { 
   exam: ExamForTestEngine;
+  initialAnswers?: Record<string, AnswerValue>;
+  initialTimeLeft?: number;
   onSubmit: (formData: FormData) => void;
 }) {
   const [started, setStarted] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(exam.durationMinutes * 60);
+  const [timeLeft, setTimeLeft] = useState(initialTimeLeft ?? (exam.durationMinutes * 60));
   const [currentQIndex, setCurrentQIndex] = useState(0);
   
   // Answers state
-  const [answers, setAnswers] = useState<Record<string, AnswerValue>>({});
+  const [answers, setAnswers] = useState<Record<string, AnswerValue>>(initialAnswers);
   
   // Question status tracking
   const [qStatus, setQStatus] = useState<Record<string, QuestionStatus>>(() => {
     const initial: Record<string, QuestionStatus> = {};
-    exam.questions.forEach((q, i) => initial[q.id] = i === 0 ? QuestionStatus.NOT_ANSWERED : QuestionStatus.NOT_VISITED);
+    exam.questions.forEach((q, i) => {
+      if (initialAnswers[q.id]) {
+        initial[q.id] = QuestionStatus.ANSWERED;
+      } else {
+        initial[q.id] = i === 0 ? QuestionStatus.NOT_ANSWERED : QuestionStatus.NOT_VISITED;
+      }
+    });
     return initial;
   });
 
@@ -54,9 +64,8 @@ export default function TestEngine({
       }
     };
     const handleFullscreenChange = () => {
-      if (!document.fullscreenElement) {
-        alert("You exited fullscreen mode. Your test has been submitted automatically.");
-        handleFinalSubmit();
+      if (!document.fullscreenElement && !isSubmitting.current) {
+        pauseTest();
       }
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
@@ -65,7 +74,26 @@ export default function TestEngine({
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
     };
-  }, [started]);
+  }, [started, answers, timeLeft]);
+
+  const pauseTest = async () => {
+    alert("You exited fullscreen mode. Your test has been paused. You can continue it from the dashboard.");
+    try {
+      await fetch('/api/tests/pause', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          examId: exam.id,
+          timeLeft,
+          answers,
+          status: 'IN_PROGRESS'
+        })
+      });
+    } catch (e) {
+      console.error(e);
+    }
+    window.location.href = '/dashboard/tests';
+  };
 
   const startTest = async () => {
     try {

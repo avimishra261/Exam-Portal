@@ -139,70 +139,14 @@ export default async function AnalysisPage() {
               </div>
             </div>
 
-            {/* Per-Question Breakdown */}
-            <div className="border-t border-gray-100 bg-gray-50">
-              <details className="group">
-                <summary className="p-4 text-sm font-bold text-blue-600 cursor-pointer hover:bg-blue-50 transition list-none flex justify-center">
-                  View Question-by-Question Details ▼
-                </summary>
-                <div className="p-6 pt-2 space-y-3 bg-white">
-                  {sub.answers.map((ans, i) => {
-                    const obtained = ans.marksObtained || 0;
-                    const max = ans.question.maxMarks || 1;
-                    const isCorrect = obtained > 0;
-                    const isNegative = obtained < 0;
-
-                    let yourAnswer = '—';
-                    let correctAnswer = '—';
-
-                    if (ans.question.type === 'MCQ') {
-                      const correctOpt = ans.question.options.find(o => o.isCorrect);
-                      const selectedOpt = ans.question.options.find(o => o.id === ans.selectedOptionIds);
-                      yourAnswer = selectedOpt?.text || '(none)';
-                      correctAnswer = correctOpt?.text || '—';
-                    } else if (ans.question.type === 'MSQ') {
-                      const selectedIds = (ans.selectedOptionIds || '').split(',').filter(Boolean);
-                      yourAnswer = selectedIds.map(sid => ans.question.options.find(o => o.id === sid)?.text).filter(Boolean).join(', ') || '(none)';
-                      correctAnswer = ans.question.options.filter(o => o.isCorrect).map(o => o.text).join(', ');
-                    } else if (ans.question.type === 'NAT') {
-                      yourAnswer = ans.numericAnswer?.toString() || '(none)';
-                      correctAnswer = ans.question.correctNumeric?.toString() || '—';
-                    } else if (ans.question.type === 'DESCRIPTIVE') {
-                      yourAnswer = ans.textAnswer || '(none)';
-                      correctAnswer = ans.question.correctText || 'AI Graded based on Rubric';
-                    }
-
-                    return (
-                      <div key={ans.id} className={`flex flex-col md:flex-row gap-4 p-4 rounded-lg border ${isCorrect ? 'border-green-200 bg-green-50/30' : isNegative ? 'border-red-200 bg-red-50/30' : 'border-gray-200 bg-gray-50/50'}`}>
-                        <div className="flex items-start gap-3 flex-1 min-w-0">
-                          <span className={`flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold ${isCorrect ? 'bg-green-100 text-green-700' : isNegative ? 'bg-red-100 text-red-700' : 'bg-gray-200 text-gray-500'}`}>
-                            Q{i + 1}
-                          </span>
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-gray-800 mb-2">{ans.question.text}</p>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-                              <p className="text-gray-600">Your answer:<br/><span className="font-medium text-gray-900">{yourAnswer}</span></p>
-                              {ans.question.type !== 'DESCRIPTIVE' && (
-                                <p className="text-green-700">Correct Answer:<br/><span className="font-medium">{correctAnswer}</span></p>
-                              )}
-                            </div>
-                            {ans.question.explanation && (
-                              <div className="mt-3 p-3 bg-blue-50 border border-blue-100 rounded text-sm text-blue-900">
-                                <span className="font-bold">Explanation:</span> {ans.question.explanation}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <div className={`flex-shrink-0 text-right md:text-center px-4 py-2 rounded-lg border ${isCorrect ? 'bg-green-100 border-green-200 text-green-800' : isNegative ? 'bg-red-100 border-red-200 text-red-800' : 'bg-gray-100 border-gray-200 text-gray-600'}`}>
-                          <p className="text-[10px] uppercase font-bold tracking-wider mb-1">Marks</p>
-                          <p className="text-lg font-black">{obtained > 0 ? '+' : ''}{obtained.toFixed(2)}</p>
-                          <p className="text-[10px] text-gray-500">out of {max}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </details>
+            {/* Detailed Analysis Link */}
+            <div className="border-t border-gray-100 bg-gray-50 p-4 flex justify-center">
+              <Link
+                href={`/dashboard/analysis/${sub.id}`}
+                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition shadow-sm"
+              >
+                View Detailed Analysis
+              </Link>
             </div>
           </div>
         );
