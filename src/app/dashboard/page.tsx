@@ -42,7 +42,7 @@ export default async function DashboardHome() {
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <h2 className="text-2xl font-bold text-gray-800 mb-1">Welcome back, {user.email}!</h2>
+        <h2 className="text-2xl font-bold text-gray-800 mb-1">Welcome back, {user.name || user.email}!</h2>
         <p className="text-gray-500">Here is your recent activity overview.</p>
       </div>
 

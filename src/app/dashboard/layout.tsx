@@ -72,7 +72,7 @@ export default async function DashboardLayout({
       <div className="p-4 border-t border-gray-100">
         <div className="flex items-center px-4 py-3 mb-2 bg-gray-50 rounded-lg">
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate">{user.email}</p>
+            <p className="text-sm font-medium text-gray-900 truncate">{user.name || user.email}</p>
             <p className="text-xs text-gray-500 truncate">{user.role}</p>
           </div>
         </div>

@@ -97,6 +97,7 @@ export default async function TakeTestPage({ params }: { params: Promise<{ id: s
     <div className="fixed inset-0 z-50 bg-white flex flex-col h-screen overflow-hidden">
       <TestEngine 
         exam={exam as any} 
+        studentName={user.name || user.email}
         initialAnswers={initialAnswers}
         initialTimeLeft={draftSubmission?.timeLeft ?? undefined}
         initialExitCount={draftSubmission?.fullscreenExitCount ?? 0}

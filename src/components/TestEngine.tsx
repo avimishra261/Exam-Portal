@@ -11,12 +11,14 @@ type AnswerValue = string | string[] | null;
 
 export default function TestEngine({ 
   exam, 
+  studentName = 'Student',
   initialAnswers = {},
   initialTimeLeft,
   initialExitCount = 0,
   onSubmit 
 }: { 
   exam: ExamForTestEngine;
+  studentName?: string;
   initialAnswers?: Record<string, AnswerValue>;
   initialTimeLeft?: number;
   initialExitCount?: number;
@@ -278,7 +280,7 @@ export default function TestEngine({
           {/* Sections & Time Header */}
           <div className="bg-white border-b border-gray-300 flex justify-between items-stretch">
              <div className="flex">
-               <div className="bg-[#2d7ba4] text-white px-4 py-1.5 font-bold border-r border-gray-300 text-xs flex items-center">CS 1 Computer Science... <span className="ml-2 bg-blue-400 rounded-full w-4 h-4 inline-flex items-center justify-center text-white text-[10px]">i</span></div>
+               <div className="bg-[#2d7ba4] text-white px-4 py-1.5 font-bold border-r border-gray-300 text-xs flex items-center truncate max-w-[250px]" title={exam.title}>{exam.title} <span className="ml-2 bg-blue-400 rounded-full w-4 h-4 inline-flex items-center justify-center text-white text-[10px]">i</span></div>
              </div>
              <div className="flex items-center px-4">
                 <span className="font-semibold text-xs">Time Left : <span className="font-bold text-sm">{formatTime(timeLeft)}</span></span>
@@ -365,6 +367,17 @@ export default function TestEngine({
                   />
                 </div>
               )}
+
+              {currentQ.type === 'DESCRIPTIVE' && (
+                <div className="mt-4">
+                  <textarea 
+                    value={(answers[currentQ.id] as string) || ''}
+                    onChange={(e) => handleAnswerChange(currentQ.id, e.target.value)}
+                    className="w-full h-40 px-3 py-2 border border-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 rounded-sm font-sans"
+                    placeholder="Type your answer here..."
+                  />
+                </div>
+              )}
             </div>
           </div>
 
@@ -385,7 +398,7 @@ export default function TestEngine({
             <div className="w-14 h-14 bg-gray-200 rounded-sm flex items-center justify-center border border-gray-300">
                <span className="text-3xl text-gray-400">👤</span>
             </div>
-            <div className="font-bold text-sm">John Smith</div>
+            <div className="font-bold text-sm">{studentName}</div>
           </div>
           
           {/* Legend Area */}
