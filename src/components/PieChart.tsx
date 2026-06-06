@@ -1,11 +1,13 @@
 'use client';
 
+import type { PieSegment } from '@/types';
+
 export default function PieChart({ 
   segments, 
   size = 200, 
   donut = true 
 }: { 
-  segments: { label: string; value: number; color: string }[];
+  segments: PieSegment[];
   size?: number;
   donut?: boolean;
 }) {

@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import type { AIInsightsResponse } from '@/types';
 
 export default function AIInsights() {
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<AIInsightsResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

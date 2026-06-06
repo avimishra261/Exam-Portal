@@ -52,6 +52,14 @@ export default async function TestsPage() {
     }
   }
 
+  // Static class maps — Tailwind can't purge dynamically constructed class names
+  const colorClasses: Record<string, { badge: string }> = {
+    blue:  { badge: 'bg-blue-100 text-blue-700' },
+    amber: { badge: 'bg-amber-100 text-amber-700' },
+    green: { badge: 'bg-green-100 text-green-700' },
+    red:   { badge: 'bg-red-100 text-red-700' },
+  };
+
   const tabs = [
     { label: 'Active', tests: active, color: 'blue', emptyMsg: 'No active tests right now.' },
     { label: 'Upcoming', tests: upcoming, color: 'amber', emptyMsg: 'No upcoming tests.' },
@@ -70,7 +78,7 @@ export default async function TestsPage() {
         <div key={tab.label}>
           <div className="flex items-center gap-3 mb-4">
             <h3 className="text-lg font-semibold text-gray-800">{tab.label}</h3>
-            <span className={`text-xs font-bold px-2 py-0.5 rounded-full bg-${tab.color}-100 text-${tab.color}-700`}>
+            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${colorClasses[tab.color].badge}`}>
               {tab.tests.length}
             </span>
           </div>

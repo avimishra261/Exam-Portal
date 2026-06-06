@@ -2,10 +2,23 @@
 
 import prisma from '@/lib/prisma';
 import { getUser } from '@/lib/auth';
-import { writeFile } from 'fs/promises';
+import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import bcrypt from 'bcryptjs';
 import { revalidatePath } from 'next/cache';
+import type { QuestionInput } from '@/types';
+
+// Allowed MIME types for question media uploads
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
+/**
+ * Sanitize a filename: remove path separators and special characters,
+ * keeping only alphanumeric characters, dots, hyphens, and underscores.
+ */
+function sanitizeFilename(name: string): string {
+  return name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 100);
+}
 
 export async function createExamAction(formData: FormData) {
   const user = await getUser();
@@ -22,9 +35,18 @@ export async function createExamAction(formData: FormData) {
 
   if (!title || !duration || !questionsJson) return { error: 'Missing required fields' };
 
-  const questionsData = JSON.parse(questionsJson);
+  let questionsData: QuestionInput[];
+  try {
+    questionsData = JSON.parse(questionsJson);
+  } catch {
+    return { error: 'Invalid questions data' };
+  }
 
   try {
+    // Ensure uploads directory exists
+    const uploadsDir = join(process.cwd(), 'public', 'uploads');
+    await mkdir(uploadsDir, { recursive: true });
+
     const exam = await prisma.exam.create({
       data: {
         title,
@@ -36,29 +58,43 @@ export async function createExamAction(formData: FormData) {
         fullscreenChances,
         createdById: user.id,
         questions: {
-          create: await Promise.all(questionsData.map(async (q: any) => {
+          create: await Promise.all(questionsData.map(async (q: QuestionInput) => {
             let mediaUrl = null;
             if (q.mediaFileId) {
               const file = formData.get(`media_${q.mediaFileId}`) as File;
               if (file && file.size > 0) {
+                // Validate file type
+                if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+                  throw new Error(`Invalid file type: ${file.type}. Only images are allowed.`);
+                }
+                // Validate file size
+                if (file.size > MAX_FILE_SIZE) {
+                  throw new Error(`File too large: ${(file.size / 1024 / 1024).toFixed(1)}MB. Maximum is 5MB.`);
+                }
+
                 const bytes = await file.arrayBuffer();
                 const buffer = Buffer.from(bytes);
-                const filename = `${Date.now()}_${file.name}`;
-                const filepath = join(process.cwd(), 'public', 'uploads', filename);
+                const filename = `${Date.now()}_${sanitizeFilename(file.name)}`;
+                const filepath = join(uploadsDir, filename);
                 await writeFile(filepath, buffer);
                 mediaUrl = `/uploads/${filename}`;
               }
             }
 
+            const parsedMaxMarks = parseFloat(q.maxMarks as unknown as string);
+            const parsedCorrectNumeric = q.type === 'NAT' && q.correctNumeric !== undefined && q.correctNumeric !== null 
+              ? parseFloat(q.correctNumeric as unknown as string) 
+              : null;
+
             return {
               text: q.text,
               type: q.type,
               mediaUrl,
-              maxMarks: parseFloat(q.maxMarks) || 1,
-              correctNumeric: q.type === 'NAT' ? parseFloat(q.correctNumeric) : null,
+              maxMarks: isNaN(parsedMaxMarks) ? 1 : parsedMaxMarks,
+              correctNumeric: parsedCorrectNumeric !== null && !isNaN(parsedCorrectNumeric) ? parsedCorrectNumeric : null,
               correctText: q.type === 'DESCRIPTIVE' ? q.correctText : null,
               options: ['MCQ', 'MSQ'].includes(q.type) ? {
-                create: q.options.map((opt: any) => ({
+                create: q.options.map((opt) => ({
                   text: opt.text,
                   isCorrect: opt.isCorrect
                 }))
@@ -70,9 +106,10 @@ export async function createExamAction(formData: FormData) {
     });
 
     return { success: true, examId: exam.id };
-  } catch (error: any) {
-    console.error(error);
-    return { error: 'Failed to create test' };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to create test';
+    console.error('Create exam error:', message);
+    return { error: message };
   }
 }
 

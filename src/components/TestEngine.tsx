@@ -1,37 +1,18 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Calculator from './Calculator';
 import ImageZoomModal from './ImageZoomModal';
+import type { ExamForTestEngine, QuestionType } from '@/types';
+import { QuestionStatus } from '@/types';
 
-type QType = 'MCQ' | 'MSQ' | 'NAT' | 'DESCRIPTIVE';
-
-interface Option {
-  id: string;
-  text: string;
-}
-
-interface Question {
-  id: string;
-  text: string;
-  type: QType;
-  mediaUrl: string | null;
-  options: Option[];
-}
-
-interface Exam {
-  id: string;
-  title: string;
-  durationMinutes: number;
-  fullscreenChances: number;
-  questions: Question[];
-}
+type AnswerValue = string | string[] | null;
 
 export default function TestEngine({ 
   exam, 
   onSubmit 
 }: { 
-  exam: Exam;
+  exam: ExamForTestEngine;
   onSubmit: (formData: FormData) => void;
 }) {
   const [started, setStarted] = useState(false);
@@ -39,15 +20,13 @@ export default function TestEngine({
   const [timeLeft, setTimeLeft] = useState(exam.durationMinutes * 60);
   const [currentQIndex, setCurrentQIndex] = useState(0);
   
-  // Answers state
-  // Map of questionId -> value (string for MCQ/NAT/DESC, array of strings for MSQ)
-  const [answers, setAnswers] = useState<Record<string, any>>({});
+  // Answers state — maps questionId to selected value(s)
+  const [answers, setAnswers] = useState<Record<string, AnswerValue>>({});
   
-  // Status state
-  // 0: Not Visited, 1: Not Answered, 2: Answered, 3: Marked for Review, 4: Answered & Marked for Review
-  const [qStatus, setQStatus] = useState<Record<string, number>>(() => {
-    const initial: Record<string, number> = {};
-    exam.questions.forEach((q, i) => initial[q.id] = i === 0 ? 1 : 0);
+  // Question status tracking
+  const [qStatus, setQStatus] = useState<Record<string, QuestionStatus>>(() => {
+    const initial: Record<string, QuestionStatus> = {};
+    exam.questions.forEach((q, i) => initial[q.id] = i === 0 ? QuestionStatus.NOT_ANSWERED : QuestionStatus.NOT_VISITED);
     return initial;
   });
 
@@ -56,6 +35,8 @@ export default function TestEngine({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const isSubmitting = useRef(false);
+  // Use a ref to track exits so event handlers always see the latest value (no stale closure)
+  const fullscreenExitsRef = useRef(0);
 
   // Auto submit when time is up or exits exceeded
   useEffect(() => {
@@ -72,21 +53,23 @@ export default function TestEngine({
     return () => clearInterval(timer);
   }, [started, timeLeft, fullscreenExits, exam.fullscreenChances]);
 
-  // Visibility change listener for tab switching
+  // Visibility change listener for tab switching — uses ref to avoid stale closure
   useEffect(() => {
     if (!started) return;
 
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        setFullscreenExits(prev => prev + 1);
-        alert(`Warning! You switched tabs/windows. Exits left: ${exam.fullscreenChances - fullscreenExits - 1}`);
+        fullscreenExitsRef.current += 1;
+        setFullscreenExits(fullscreenExitsRef.current);
+        alert(`Warning! You switched tabs/windows. Exits left: ${exam.fullscreenChances - fullscreenExitsRef.current}`);
       }
     };
 
     const handleFullscreenChange = () => {
       if (!document.fullscreenElement) {
-        setFullscreenExits(prev => prev + 1);
-        alert(`Warning! You exited fullscreen. Exits left: ${exam.fullscreenChances - fullscreenExits - 1}`);
+        fullscreenExitsRef.current += 1;
+        setFullscreenExits(fullscreenExitsRef.current);
+        alert(`Warning! You exited fullscreen. Exits left: ${exam.fullscreenChances - fullscreenExitsRef.current}`);
       }
     };
 
@@ -97,7 +80,7 @@ export default function TestEngine({
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
     };
-  }, [started, fullscreenExits, exam.fullscreenChances]);
+  }, [started, exam.fullscreenChances]);
 
   const startTest = async () => {
     try {
@@ -130,25 +113,24 @@ export default function TestEngine({
     onSubmit(formData);
   };
 
-  const handleAnswerChange = (qId: string, val: any) => {
+  const handleAnswerChange = (qId: string, val: AnswerValue) => {
     setAnswers(prev => ({ ...prev, [qId]: val }));
   };
 
   const navigateTo = (index: number) => {
-    // Mark previous question as 'Not Answered' if it was 'Not Visited' and not answered
     const prevQId = exam.questions[currentQIndex].id;
-    if (qStatus[prevQId] === 0) {
-      updateStatus(prevQId, hasAnswer(prevQId) ? 2 : 1);
+    if (qStatus[prevQId] === QuestionStatus.NOT_VISITED) {
+      updateStatus(prevQId, hasAnswer(prevQId) ? QuestionStatus.ANSWERED : QuestionStatus.NOT_ANSWERED);
     }
     
     setCurrentQIndex(index);
     const currQId = exam.questions[index].id;
-    if (qStatus[currQId] === 0) {
-      updateStatus(currQId, 1); // Mark as Not Answered (visited)
+    if (qStatus[currQId] === QuestionStatus.NOT_VISITED) {
+      updateStatus(currQId, QuestionStatus.NOT_ANSWERED);
     }
   };
 
-  const updateStatus = (qId: string, status: number) => {
+  const updateStatus = (qId: string, status: QuestionStatus) => {
     setQStatus(prev => ({ ...prev, [qId]: status }));
   };
 
@@ -161,7 +143,7 @@ export default function TestEngine({
 
   const saveAndNext = () => {
     const qId = exam.questions[currentQIndex].id;
-    updateStatus(qId, hasAnswer(qId) ? 2 : 1);
+    updateStatus(qId, hasAnswer(qId) ? QuestionStatus.ANSWERED : QuestionStatus.NOT_ANSWERED);
     if (currentQIndex < exam.questions.length - 1) {
       navigateTo(currentQIndex + 1);
     }
@@ -172,12 +154,12 @@ export default function TestEngine({
     const newAnswers = { ...answers };
     delete newAnswers[qId];
     setAnswers(newAnswers);
-    updateStatus(qId, 1);
+    updateStatus(qId, QuestionStatus.NOT_ANSWERED);
   };
 
   const markForReview = () => {
     const qId = exam.questions[currentQIndex].id;
-    updateStatus(qId, hasAnswer(qId) ? 4 : 3);
+    updateStatus(qId, hasAnswer(qId) ? QuestionStatus.ANSWERED_AND_MARKED : QuestionStatus.MARKED_FOR_REVIEW);
     if (currentQIndex < exam.questions.length - 1) {
       navigateTo(currentQIndex + 1);
     }
@@ -190,13 +172,13 @@ export default function TestEngine({
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  const getStatusColor = (status: number) => {
+  const getStatusColor = (status: QuestionStatus) => {
     switch(status) {
-      case 0: return 'bg-gray-200 text-gray-800'; // Not visited
-      case 1: return 'bg-red-500 text-white'; // Not answered
-      case 2: return 'bg-green-500 text-white'; // Answered
-      case 3: return 'bg-purple-500 text-white'; // Marked for review
-      case 4: return 'bg-purple-700 text-white relative after:content-["✔"] after:absolute after:-bottom-1 after:-right-1 after:text-green-400 after:text-xs'; // Answered + Marked
+      case QuestionStatus.NOT_VISITED: return 'bg-gray-200 text-gray-800';
+      case QuestionStatus.NOT_ANSWERED: return 'bg-red-500 text-white';
+      case QuestionStatus.ANSWERED: return 'bg-green-500 text-white';
+      case QuestionStatus.MARKED_FOR_REVIEW: return 'bg-purple-500 text-white';
+      case QuestionStatus.ANSWERED_AND_MARKED: return 'bg-purple-700 text-white relative after:content-["✔"] after:absolute after:-bottom-1 after:-right-1 after:text-green-400 after:text-xs';
       default: return 'bg-gray-200';
     }
   };
@@ -300,7 +282,7 @@ export default function TestEngine({
               ))}
 
               {currentQ.type === 'MSQ' && currentQ.options.map((opt, i) => {
-                const currentVals = answers[currentQ.id] || [];
+                const currentVals = (answers[currentQ.id] as string[] | null) || [];
                 return (
                   <label key={opt.id} className="flex items-center gap-3 p-3 bg-white rounded border border-gray-200 hover:border-blue-400 hover:bg-blue-50 cursor-pointer transition">
                     <input 
@@ -368,10 +350,10 @@ export default function TestEngine({
           <div className="p-4 border-b border-gray-200">
             <h3 className="font-bold text-gray-800 mb-3 text-sm">Legend</h3>
             <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="flex items-center gap-2"><span className="w-5 h-5 flex items-center justify-center rounded bg-green-500 text-white text-[10px]">{Object.values(qStatus).filter(s => s===2 || s===4).length}</span> Answered</div>
-              <div className="flex items-center gap-2"><span className="w-5 h-5 flex items-center justify-center rounded bg-red-500 text-white text-[10px]">{Object.values(qStatus).filter(s => s===1).length}</span> Not Answered</div>
-              <div className="flex items-center gap-2"><span className="w-5 h-5 flex items-center justify-center rounded bg-gray-200 text-gray-800 text-[10px]">{Object.values(qStatus).filter(s => s===0).length}</span> Not Visited</div>
-              <div className="flex items-center gap-2"><span className="w-5 h-5 flex items-center justify-center rounded bg-purple-500 text-white text-[10px]">{Object.values(qStatus).filter(s => s===3).length}</span> Marked</div>
+              <div className="flex items-center gap-2"><span className="w-5 h-5 flex items-center justify-center rounded bg-green-500 text-white text-[10px]">{Object.values(qStatus).filter(s => s===QuestionStatus.ANSWERED || s===QuestionStatus.ANSWERED_AND_MARKED).length}</span> Answered</div>
+              <div className="flex items-center gap-2"><span className="w-5 h-5 flex items-center justify-center rounded bg-red-500 text-white text-[10px]">{Object.values(qStatus).filter(s => s===QuestionStatus.NOT_ANSWERED).length}</span> Not Answered</div>
+              <div className="flex items-center gap-2"><span className="w-5 h-5 flex items-center justify-center rounded bg-gray-200 text-gray-800 text-[10px]">{Object.values(qStatus).filter(s => s===QuestionStatus.NOT_VISITED).length}</span> Not Visited</div>
+              <div className="flex items-center gap-2"><span className="w-5 h-5 flex items-center justify-center rounded bg-purple-500 text-white text-[10px]">{Object.values(qStatus).filter(s => s===QuestionStatus.MARKED_FOR_REVIEW).length}</span> Marked</div>
             </div>
           </div>
           

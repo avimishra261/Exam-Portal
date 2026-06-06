@@ -1,9 +1,16 @@
 import { jwtVerify, SignJWT } from 'jose';
 import { cookies } from 'next/headers';
 import prisma from './prisma';
+import type { SessionPayload, SessionUser } from '@/types';
 
 const getJwtSecretKey = () => {
-  const secret = process.env.JWT_SECRET || 'super-secret-key-for-local-dev';
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error(
+      'JWT_SECRET environment variable is not set. ' +
+      'Generate one with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"'
+    );
+  }
   return new TextEncoder().encode(secret);
 };
 
@@ -15,11 +22,11 @@ export async function signToken(payload: { userId: string; role: string }) {
     .sign(getJwtSecretKey());
 }
 
-export async function verifyToken(token: string) {
+export async function verifyToken(token: string): Promise<SessionPayload | null> {
   try {
     const { payload } = await jwtVerify(token, getJwtSecretKey());
-    return payload as { userId: string; role: string };
-  } catch (error) {
+    return payload as unknown as SessionPayload;
+  } catch {
     return null;
   }
 }
