@@ -269,10 +269,10 @@ export default function AnalysisClient({
                     </div>
                   </div>
                 )}
-                {(showSolution || showAllSolutions) && currentQuestion.correctText && (
+                {(showSolution || showAllSolutions) && (currentQuestion.correctText || currentQuestion.explanation) && (
                   <div className="flex items-start gap-4">
                     <div className="flex-1 px-4 py-3 border border-[#28a745] rounded-sm text-gray-800 bg-white text-base whitespace-pre-wrap">
-                      {currentQuestion.correctText}
+                      {currentQuestion.correctText || currentQuestion.explanation}
                     </div>
                     <div className="flex items-center gap-2 text-white bg-[#28a745] px-4 py-2 rounded-r-md relative text-sm font-bold min-w-[160px] mt-2">
                       <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 bg-[#28a745] rotate-45 rounded-sm"></div>
