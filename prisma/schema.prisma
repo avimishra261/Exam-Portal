@@ -15,7 +15,8 @@ model User {
   isSuperAdmin Boolean      @default(false)
   createdAt    DateTime     @default(now())
 
-  submissions  Submission[]
+  submissions      Submission[]
+  attemptOverrides AttemptOverride[]
 }
 
 model Exam {
@@ -29,9 +30,11 @@ model Exam {
   createdById     String?
   createdAt       DateTime     @default(now())
   fullscreenChances Int        @default(5)
+  maxAttempts     Int          @default(1)
 
   questions       Question[]
   submissions     Submission[]
+  overrides       AttemptOverride[]
 }
 
 model Question {
@@ -87,4 +90,17 @@ model SubmissionAnswer {
 
   submission     Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
   question       Question   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+}
+
+model AttemptOverride {
+  id              String   @id @default(uuid())
+  examId          String
+  userId          String
+  allowedAttempts Int
+  createdAt       DateTime @default(now())
+
+  exam Exam @relation(fields: [examId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([examId, userId])
 }
