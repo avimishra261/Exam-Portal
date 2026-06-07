@@ -93,6 +93,7 @@ export async function createExamAction(formData: FormData) {
             return {
               text: q.text,
               type: q.type,
+              section: q.section || 'General',
               mediaUrl,
               maxMarks: isNaN(parsedMaxMarks) ? 1 : parsedMaxMarks,
               correctNumeric: parsedCorrectNumeric !== null && !isNaN(parsedCorrectNumeric) ? parsedCorrectNumeric : null,

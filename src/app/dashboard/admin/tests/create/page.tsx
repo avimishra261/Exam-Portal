@@ -15,6 +15,7 @@ interface Option {
 interface Question {
   id: string;
   type: QType;
+  section: string;
   text: string;
   mediaFile?: File | null;
   options: Option[];
@@ -48,6 +49,7 @@ export default function CreateTestPage() {
       {
         id: Date.now().toString(),
         type,
+        section: 'General',
         text: '',
         maxMarks: '1',
         options: type === 'MCQ' || type === 'MSQ' ? [
@@ -204,14 +206,18 @@ export default function CreateTestPage() {
               <textarea required form="test-form" value={q.text} onChange={e => updateQuestion(q.id, { text: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white" rows={2} />
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm text-gray-600 mb-1">Optional Media (Image)</label>
-                <input type="file" accept="image/*" onChange={e => updateQuestion(q.id, { mediaFile: e.target.files?.[0] || null })} className="text-sm text-gray-600" />
+                <label className="block text-sm text-gray-600 mb-1">Section Name</label>
+                <input required form="test-form" type="text" value={q.section} onChange={e => updateQuestion(q.id, { section: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white" placeholder="General" />
               </div>
               <div>
                 <label className="block text-sm text-gray-600 mb-1">Max Marks</label>
                 <input required form="test-form" type="number" step="0.5" min="0.5" value={q.maxMarks} onChange={e => updateQuestion(q.id, { maxMarks: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white" />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-600 mb-1">Media (Optional)</label>
+                <input type="file" accept="image/*" onChange={e => updateQuestion(q.id, { mediaFile: e.target.files?.[0] || null })} className="text-sm text-gray-600 w-full mt-1" />
               </div>
             </div>
 

@@ -40,6 +40,7 @@ export interface ExamQuestion {
   id: string;
   text: string;
   type: QuestionType;
+  section: string;
   maxMarks: number;
   mediaUrl: string | null;
   options: ExamOption[];
@@ -57,6 +58,7 @@ export interface ExamForTestEngine {
 export interface QuestionInput {
   text: string;
   type: QuestionType;
+  section?: string;
   maxMarks: number | string;
   mediaFileId?: string;
   correctNumeric?: number | string;

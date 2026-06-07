@@ -34,6 +34,16 @@ export default function TestEngine({
   // Answers state
   const [answers, setAnswers] = useState<Record<string, AnswerValue>>(initialAnswers);
   
+  const sections = useMemo(() => {
+    const s = new Set<string>();
+    exam.questions.forEach(q => s.add(q.section || 'General'));
+    return Array.from(s);
+  }, [exam.questions]);
+
+  const [activeSection, setActiveSection] = useState<string>(sections[0] || 'General');
+  const [showQuestionPaper, setShowQuestionPaper] = useState(false);
+
+  
   const shuffledQuestions = useMemo(() => {
     if (!attemptSeed) return exam.questions;
     function stringToSeed(str: string): number {
@@ -53,13 +63,36 @@ export default function TestEngine({
     }
     
     const rng = mulberry32(stringToSeed(attemptSeed));
-    const newArr = [...exam.questions];
-    for (let i = newArr.length - 1; i > 0; i--) {
+    const grouped: Record<string, typeof exam.questions> = {};
+    sections.forEach(s => grouped[s] = []);
+    exam.questions.forEach(q => {
+      const sec = q.section || 'General';
+      if (grouped[sec]) grouped[sec].push(q);
+      else {
+        grouped[sec] = [q];
+      }
+    });
+
+    const finalArr: typeof exam.questions = [];
+    sections.forEach(sec => {
+      const sectionQuestions = [...grouped[sec]];
+      for (let i = sectionQuestions.length - 1; i > 0; i--) {
         const j = Math.floor(rng() * (i + 1));
-        [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
-    }
-    return newArr;
-  }, [exam.questions, attemptSeed]);
+        [sectionQuestions[i], sectionQuestions[j]] = [sectionQuestions[j], sectionQuestions[i]];
+      }
+      finalArr.push(...sectionQuestions);
+    });
+    
+    return finalArr;
+  }, [exam.questions, attemptSeed, sections]);
+
+  const activeSectionIndices = useMemo(() => {
+    const indices: number[] = [];
+    shuffledQuestions.forEach((q, idx) => {
+      if ((q.section || 'General') === activeSection) indices.push(idx);
+    });
+    return indices;
+  }, [shuffledQuestions, activeSection]);
 
   // Question status tracking
   const [qStatus, setQStatus] = useState<Record<string, QuestionStatus>>(() => {
@@ -94,6 +127,21 @@ export default function TestEngine({
 
   useEffect(() => {
     if (!started) return;
+    
+    const preventScroll = (e: WheelEvent) => {
+      e.preventDefault();
+    };
+    const preventKeys = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+      const keys = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space", "PageUp", "PageDown", "Home", "End", " "];
+      if (keys.includes(e.key)) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('wheel', preventScroll, { passive: false });
+    window.addEventListener('keydown', preventKeys, { passive: false });
+    
     const handleVisibilityChange = () => {
       if (document.hidden && !isSubmitting.current) {
         pauseTest(true);
@@ -111,6 +159,8 @@ export default function TestEngine({
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     document.addEventListener("contextmenu", preventContextMenu);
     return () => {
+      window.removeEventListener('wheel', preventScroll);
+      window.removeEventListener('keydown', preventKeys);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
       document.removeEventListener("contextmenu", preventContextMenu);
@@ -185,9 +235,10 @@ export default function TestEngine({
       updateStatus(prevQId, hasAnswer(prevQId) ? QuestionStatus.ANSWERED : QuestionStatus.NOT_ANSWERED);
     }
     setCurrentQIndex(index);
-    const currQId = shuffledQuestions[index].id;
-    if (qStatus[currQId] === QuestionStatus.NOT_VISITED) {
-      updateStatus(currQId, QuestionStatus.NOT_ANSWERED);
+    const currQ = shuffledQuestions[index];
+    setActiveSection(currQ.section || 'General');
+    if (qStatus[currQ.id] === QuestionStatus.NOT_VISITED) {
+      updateStatus(currQ.id, QuestionStatus.NOT_ANSWERED);
     }
   };
 
@@ -278,6 +329,32 @@ export default function TestEngine({
   };
   return (
     <>
+      {showQuestionPaper && (
+        <div className="fixed inset-0 z-[200] bg-white flex flex-col h-screen text-[13px] font-sans">
+          <div className="h-14 bg-[#2f3136] text-white flex justify-between items-center px-6 shadow-md">
+            <h2 className="text-xl font-bold">Question Paper</h2>
+            <button onClick={() => setShowQuestionPaper(false)} className="text-white hover:text-red-400 font-bold text-lg cursor-pointer">Close X</button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-8 max-w-5xl mx-auto w-full">
+            {sections.map(sec => (
+              <div key={sec} className="mb-10">
+                <h3 className="text-2xl font-bold text-gray-800 mb-6 border-b pb-2">{sec}</h3>
+                {shuffledQuestions.map((q) => {
+                  if ((q.section || 'General') !== sec) return null;
+                  const localIdx = shuffledQuestions.filter(sq => (sq.section || 'General') === sec).findIndex(sq => sq.id === q.id);
+                  return (
+                    <div key={q.id} className="mb-8 bg-gray-50 p-6 border rounded-lg">
+                      <div className="font-bold mb-2">Q.{localIdx + 1} ({q.type}) - Max Marks: {q.maxMarks}</div>
+                      <div className="text-base whitespace-pre-wrap leading-relaxed" dangerouslySetInnerHTML={{ __html: q.text }}></div>
+                      {q.mediaUrl && <img src={q.mediaUrl} alt="Question" className="max-h-80 mt-4 object-contain" />}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="lg:hidden fixed inset-0 z-[100] flex items-center justify-center p-8 text-center bg-gray-50">
         <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 max-w-sm">
           <h2 className="text-xl font-bold text-red-600 mb-2">Desktop Required</h2>
@@ -290,10 +367,10 @@ export default function TestEngine({
       {/* Top Banner */}
       <div className="h-14 flex justify-between items-center border-b border-[#a0a0a0] relative bg-white px-6 shadow-sm">
          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center border border-purple-300 text-purple-700 font-bold text-[10px]">LOGO</div>
+            <div className="w-10 h-10 bg-transparent rounded-full flex items-center justify-center border border-transparent font-bold text-[10px]"></div>
          </div>
          <div className="flex-1 flex justify-center text-[#2d228f] font-bold text-lg tracking-wide uppercase">
-            GRADUATE APTITUDE TEST IN ENGINEERING (GATE)
+            ExamPortal
          </div>
       </div>
 

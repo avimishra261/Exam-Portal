@@ -57,6 +57,7 @@ model Question {
   examId          String
   text            String
   type            String
+  section         String       @default("General")
   mediaUrl        String?
   maxMarks        Float        @default(1)
   createdAt       DateTime     @default(now())
