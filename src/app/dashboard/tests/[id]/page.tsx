@@ -78,6 +78,9 @@ export default async function TakeTestPage({ params }: { params: Promise<{ id: s
 
   const allowedAttempts = override ? override.allowedAttempts : exam.maxAttempts;
 
+  const currentAttemptNumber = completedSubmissionsCount + 1;
+  const attemptSeed = `${user.id}_${exam.id}_${currentAttemptNumber}`;
+
   if (completedSubmissionsCount >= allowedAttempts && !draftSubmission) {
     return (
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center max-w-lg mx-auto">
@@ -101,6 +104,7 @@ export default async function TakeTestPage({ params }: { params: Promise<{ id: s
         initialAnswers={initialAnswers}
         initialTimeLeft={draftSubmission?.timeLeft ?? undefined}
         initialExitCount={draftSubmission?.fullscreenExitCount ?? 0}
+        attemptSeed={attemptSeed}
         onSubmit={submitAction} 
       />
     </div>

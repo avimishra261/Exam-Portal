@@ -45,7 +45,16 @@ export async function loginAction(formData: FormData) {
 
 const otpStore = new Map<string, string>();
 
+function isValidEmail(email: string) {
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  if (!emailRegex.test(email)) return false;
+  const invalidDomains = ['.local', '.test', '.example', '.invalid', '.localhost'];
+  return !invalidDomains.some(ext => email.toLowerCase().endsWith(ext));
+}
+
 export async function sendOtpAction(email: string) {
+  if (!isValidEmail(email)) return { error: 'Please provide a valid email address (e.g., example@gmail.com).' };
+
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) return { error: 'User already exists with this email.' };
 
@@ -72,6 +81,8 @@ export async function registerAction(formData: FormData) {
   if (!email || !password || !firstName || !lastName || !mobile || !otp) {
     return { error: 'Missing fields' };
   }
+  
+  if (!isValidEmail(email)) return { error: 'Invalid email format' };
 
   if (otpStore.get(email) !== otp) {
     return { error: 'Invalid or expired OTP' };

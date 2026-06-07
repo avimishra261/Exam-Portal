@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Calculator from './Calculator';
 import ImageZoomModal from './ImageZoomModal';
 import VirtualNumpad from './VirtualNumpad';
@@ -15,6 +15,7 @@ export default function TestEngine({
   initialAnswers = {},
   initialTimeLeft,
   initialExitCount = 0,
+  attemptSeed,
   onSubmit 
 }: { 
   exam: ExamForTestEngine;
@@ -22,6 +23,7 @@ export default function TestEngine({
   initialAnswers?: Record<string, AnswerValue>;
   initialTimeLeft?: number;
   initialExitCount?: number;
+  attemptSeed?: string;
   onSubmit: (formData: FormData) => void;
 }) {
   const [started, setStarted] = useState(false);
@@ -32,10 +34,37 @@ export default function TestEngine({
   // Answers state
   const [answers, setAnswers] = useState<Record<string, AnswerValue>>(initialAnswers);
   
+  const shuffledQuestions = useMemo(() => {
+    if (!attemptSeed) return exam.questions;
+    function stringToSeed(str: string): number {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            hash = Math.imul(31, hash) + str.charCodeAt(i) | 0;
+        }
+        return hash;
+    }
+    function mulberry32(a: number) {
+        return function() {
+          var t = a += 0x6D2B79F5;
+          t = Math.imul(t ^ t >>> 15, t | 1);
+          t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+          return ((t ^ t >>> 14) >>> 0) / 4294967296;
+        }
+    }
+    
+    const rng = mulberry32(stringToSeed(attemptSeed));
+    const newArr = [...exam.questions];
+    for (let i = newArr.length - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
+    }
+    return newArr;
+  }, [exam.questions, attemptSeed]);
+
   // Question status tracking
   const [qStatus, setQStatus] = useState<Record<string, QuestionStatus>>(() => {
     const initial: Record<string, QuestionStatus> = {};
-    exam.questions.forEach((q, i) => {
+    shuffledQuestions.forEach((q, i) => {
       if (initialAnswers[q.id]) {
         initial[q.id] = QuestionStatus.ANSWERED;
       } else {
@@ -134,7 +163,7 @@ export default function TestEngine({
     if (isSubmitting.current) return;
     isSubmitting.current = true;
     const formData = new FormData();
-    for (const q of exam.questions) {
+    for (const q of shuffledQuestions) {
       const val = answers[q.id];
       if (val === undefined || val === null || val === '') continue;
       if (q.type === 'MSQ' && Array.isArray(val)) {
@@ -151,12 +180,12 @@ export default function TestEngine({
   };
 
   const navigateTo = (index: number) => {
-    const prevQId = exam.questions[currentQIndex].id;
+    const prevQId = shuffledQuestions[currentQIndex].id;
     if (qStatus[prevQId] === QuestionStatus.NOT_VISITED) {
       updateStatus(prevQId, hasAnswer(prevQId) ? QuestionStatus.ANSWERED : QuestionStatus.NOT_ANSWERED);
     }
     setCurrentQIndex(index);
-    const currQId = exam.questions[index].id;
+    const currQId = shuffledQuestions[index].id;
     if (qStatus[currQId] === QuestionStatus.NOT_VISITED) {
       updateStatus(currQId, QuestionStatus.NOT_ANSWERED);
     }
@@ -174,9 +203,9 @@ export default function TestEngine({
   };
 
   const saveAndNext = () => {
-    const qId = exam.questions[currentQIndex].id;
+    const qId = shuffledQuestions[currentQIndex].id;
     updateStatus(qId, hasAnswer(qId) ? QuestionStatus.ANSWERED : QuestionStatus.NOT_ANSWERED);
-    if (currentQIndex < exam.questions.length - 1) {
+    if (currentQIndex < shuffledQuestions.length - 1) {
       navigateTo(currentQIndex + 1);
     } else {
       navigateTo(0);
@@ -184,7 +213,7 @@ export default function TestEngine({
   };
 
   const clearResponse = () => {
-    const qId = exam.questions[currentQIndex].id;
+    const qId = shuffledQuestions[currentQIndex].id;
     const newAnswers = { ...answers };
     delete newAnswers[qId];
     setAnswers(newAnswers);
@@ -192,9 +221,9 @@ export default function TestEngine({
   };
 
   const markForReview = () => {
-    const qId = exam.questions[currentQIndex].id;
+    const qId = shuffledQuestions[currentQIndex].id;
     updateStatus(qId, hasAnswer(qId) ? QuestionStatus.ANSWERED_AND_MARKED : QuestionStatus.MARKED_FOR_REVIEW);
-    if (currentQIndex < exam.questions.length - 1) {
+    if (currentQIndex < shuffledQuestions.length - 1) {
       navigateTo(currentQIndex + 1);
     } else {
       navigateTo(0);
@@ -214,7 +243,7 @@ export default function TestEngine({
         <h2 className="text-2xl font-bold text-gray-800 mb-4">{exam.title}</h2>
         <div className="space-y-4 text-left bg-blue-50 p-6 rounded-lg text-sm text-blue-900">
           <p><strong>Duration:</strong> {exam.durationMinutes} Minutes</p>
-          <p><strong>Total Questions:</strong> {exam.questions.length}</p>
+          <p><strong>Total Questions:</strong> {shuffledQuestions.length}</p>
           <ul className="list-disc pl-5 space-y-2 mt-4">
             <li>The test will open in <strong>Fullscreen mode</strong>.</li>
             <li>Switching tabs, opening other windows, or exiting fullscreen will result in a warning.</li>
@@ -228,7 +257,7 @@ export default function TestEngine({
     );
   }
 
-  const currentQ = exam.questions[currentQIndex];
+  const currentQ = shuffledQuestions[currentQIndex];
 
   // Specific GATE styling classes
   const answeredClass = "bg-[#5cb85c] text-white [clip-path:polygon(0_0,100%_0,100%_75%,50%_100%,0_75%)]";
@@ -442,7 +471,7 @@ export default function TestEngine({
           {/* Palette Area */}
           <div className="p-3 flex-1 overflow-y-auto bg-[#eef5fb]">
             <div className="flex flex-wrap gap-2.5">
-              {exam.questions.map((q, i) => (
+              {shuffledQuestions.map((q, i) => (
                 <button
                   key={q.id}
                   onClick={() => navigateTo(i)}
