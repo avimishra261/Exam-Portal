@@ -132,12 +132,9 @@ export default function TestEngine({
       e.preventDefault();
     };
     const preventKeys = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
-      const keys = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space", "PageUp", "PageDown", "Home", "End", " "];
-      if (keys.includes(e.key)) {
-        e.preventDefault();
-      }
+      if (e.key === "F11" || e.key === "Escape") return;
+      e.preventDefault();
+      e.stopPropagation();
     };
     window.addEventListener('wheel', preventScroll, { passive: false });
     window.addEventListener('keydown', preventKeys, { passive: false });
