@@ -63,8 +63,8 @@ export async function POST(req: Request) {
       if (val === undefined || val === null || val === '') continue;
       
       let selectedOptionIds = null;
-      let textAnswer = null;
-      let numericAnswer = null;
+      const textAnswer = null;
+      const numericAnswer = null;
 
       if (Array.isArray(val)) {
         selectedOptionIds = val.join(',');

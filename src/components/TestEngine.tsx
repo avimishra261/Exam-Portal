@@ -87,12 +87,13 @@ export default function TestEngine({
     };
   }, [started, answers, timeLeft, exitCount]);
 
-  const pauseTest = async (isTabSwitch = false) => {
+  async function pauseTest(isTabSwitch = false) {
     const newExitCount = exitCount + 1;
     setExitCount(newExitCount);
     
     if (newExitCount > exam.fullscreenChances) {
       alert(`You have exceeded the allowed warnings (${exam.fullscreenChances}). Your test will be auto-submitted.`);
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define
       handleFinalSubmit();
       return;
     }
@@ -111,11 +112,11 @@ export default function TestEngine({
           isExitFullscreen: true
         })
       });
-    } catch (e) {
-      console.error(e);
+    } catch {
+      console.error('pauseTest failed');
     }
     window.location.href = '/dashboard/tests';
-  };
+  }
 
   const startTest = async () => {
     try {
@@ -128,7 +129,7 @@ export default function TestEngine({
     }
   };
 
-  const handleFinalSubmit = () => {
+  function handleFinalSubmit() {
     if (isSubmitting.current) return;
     isSubmitting.current = true;
     const formData = new FormData();
@@ -142,7 +143,7 @@ export default function TestEngine({
       }
     }
     onSubmit(formData);
-  };
+  }
 
   const handleAnswerChange = (qId: string, val: AnswerValue) => {
     setAnswers(prev => ({ ...prev, [qId]: val }));

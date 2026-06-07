@@ -40,7 +40,7 @@ export async function GET() {
     // Compile data for Gemini
     const testScores = submissions.map(s => `Test "${s.exam.title}": ${s.score} / ${s.maxScore || '?'}`).join('\\n');
     
-    let typeStats: Record<string, { correct: number, total: number }> = {
+    const typeStats: Record<string, { correct: number, total: number }> = {
       'MCQ': { correct: 0, total: 0 },
       'MSQ': { correct: 0, total: 0 },
       'NAT': { correct: 0, total: 0 },

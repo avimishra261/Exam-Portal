@@ -235,8 +235,8 @@ export async function grantAttemptOverrideAction(userId: string, examId: string,
       where: {
         examId_userId: { examId, userId }
       },
-      update: { allowedAttempts, durationOverride },
-      create: { examId, userId, allowedAttempts, durationOverride }
+      update: { allowedAttempts, durationOverride: durationOverride ?? null },
+      create: { examId, userId, allowedAttempts, durationOverride: durationOverride ?? null }
     });
 
     revalidatePath('/dashboard/admin/users');
