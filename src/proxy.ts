@@ -12,7 +12,7 @@ const getJwtSecretKey = () => {
 // Routes that don't require authentication
 const PUBLIC_ROUTES = ['/login', '/register'];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow public routes and static assets
