@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { makeAdminAction, demoteAdminAction, deleteUserAction, resetPasswordAction, updateEmailAction, grantAttemptOverrideAction, banStudentAction } from '@/app/actions/admin';
+import { makeAdminAction, demoteAdminAction, deleteUserAction, updateEmailAction, grantAttemptOverrideAction, banStudentAction } from '@/app/actions/admin';
 
 interface UserRow {
   id: string;
@@ -25,11 +25,9 @@ export default function UserTable({
   bannedStudents?: any[];
 }) {
   const [feedback, setFeedback] = useState<Record<string, string>>({});
-  const [editingPassword, setEditingPassword] = useState<string | null>(null);
   const [editingEmail, setEditingEmail] = useState<string | null>(null);
   const [editingAttempts, setEditingAttempts] = useState<string | null>(null);
   
-  const [newPassword, setNewPassword] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [selectedExamId, setSelectedExamId] = useState('');
   const [overrideAttempts, setOverrideAttempts] = useState('');
@@ -60,15 +58,7 @@ export default function UserTable({
     else showFeedback(userId, 'User deleted.');
   };
 
-  const handleResetPassword = async (userId: string) => {
-    if (!newPassword || newPassword.length < 6) {
-      showFeedback(userId, 'Error: Password must be at least 6 characters.');
-      return;
-    }
-    const res = await resetPasswordAction(userId, newPassword);
-    if (res.error) showFeedback(userId, `Error: ${res.error}`);
-    else { showFeedback(userId, 'Password reset!'); setEditingPassword(null); setNewPassword(''); }
-  };
+
 
   const handleUpdateEmail = async (userId: string) => {
     if (!newEmail || !newEmail.includes('@')) {
@@ -191,23 +181,7 @@ export default function UserTable({
                             </button>
                           )}
 
-                          {editingPassword === user.id ? (
-                            <div className="flex items-center gap-1">
-                              <input
-                                type="password"
-                                value={newPassword}
-                                onChange={e => setNewPassword(e.target.value)}
-                                placeholder="New password"
-                                className="px-2 py-1 border border-gray-300 rounded text-xs w-28 text-gray-900 bg-white"
-                              />
-                              <button onClick={() => handleResetPassword(user.id)} className="text-xs font-medium text-blue-600">Set</button>
-                              <button onClick={() => { setEditingPassword(null); setNewPassword(''); }} className="text-xs font-medium text-gray-500">✕</button>
-                            </div>
-                          ) : (
-                            <button onClick={() => { setEditingPassword(user.id); setNewPassword(''); }} className="text-xs font-medium text-gray-600 hover:text-gray-800 px-2 py-1 bg-gray-50 rounded">
-                              Reset Password
-                            </button>
-                          )}
+
 
                           {editingEmail !== user.id && (
                             <button onClick={() => { setEditingEmail(user.id); setNewEmail(user.email); }} className="text-xs font-medium text-gray-600 hover:text-gray-800 px-2 py-1 bg-gray-50 rounded">

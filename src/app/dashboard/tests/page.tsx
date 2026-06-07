@@ -12,8 +12,19 @@ export default async function TestsPage({ searchParams }: { searchParams: Promis
 
   const now = new Date();
 
+  const currentUser = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { batchId: true }
+  });
+
   const allExams = await prisma.exam.findMany({
-    where: { isDraft: false },
+    where: { 
+      isDraft: false,
+      OR: [
+        { batches: { none: {} } }, // Available to everyone if no batch assigned
+        { batches: { some: { id: currentUser?.batchId || 'unmatched' } } }
+      ]
+    },
     orderBy: { createdAt: 'desc' },
     include: { _count: { select: { questions: true } } }
   });

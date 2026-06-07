@@ -44,7 +44,7 @@ export default async function DetailedAnalysisPage({ params }: PageProps) {
   // Fetch Leaderboard
   const allSubmissions = await prisma.submission.findMany({
     where: { examId: submission.examId, status: 'COMPLETED' },
-    include: { user: { select: { id: true, name: true, email: true } } },
+    include: { user: { select: { id: true, firstName: true, lastName: true, email: true } } },
     orderBy: [
       { score: 'desc' },
       { submittedAt: 'asc' }
@@ -67,7 +67,7 @@ export default async function DetailedAnalysisPage({ params }: PageProps) {
       userId: sub.userId,
       name: submission.exam.leaderboardAnonymous && sub.userId !== user.id 
         ? 'Anonymous Student' 
-        : (sub.user.name || sub.user.email),
+        : (sub.user.firstName ? `${sub.user.firstName} ${sub.user.lastName}` : sub.user.email),
       score: score,
       maxScore: sub.maxScore,
     };
@@ -85,7 +85,7 @@ export default async function DetailedAnalysisPage({ params }: PageProps) {
     user: {
       id: submission.user.id,
       email: submission.user.email,
-      name: submission.user.name,
+      name: submission.user.firstName ? `${submission.user.firstName} ${submission.user.lastName}` : submission.user.email,
     }
   };
 

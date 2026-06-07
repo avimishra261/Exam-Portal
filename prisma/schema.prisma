@@ -10,15 +10,22 @@ datasource db {
 model User {
   id           String       @id @default(uuid())
   email        String       @unique
-  name         String?
+  firstName    String?
+  lastName     String?
+  mobile       String?
   password     String
   role         String       @default("STUDENT")
+  status       String       @default("PENDING")
   isSuperAdmin Boolean      @default(false)
   createdAt    DateTime     @default(now())
+  batchId      String?
 
   submissions      Submission[]
   attemptOverrides AttemptOverride[]
   bannedFrom       BannedStudent[]
+  nameChangeRequests NameChangeRequest[]
+  adminLogs        AdminLog[]
+  batch            Batch? @relation(fields: [batchId], references: [id])
 }
 
 model Exam {
@@ -42,6 +49,7 @@ model Exam {
   submissions     Submission[]
   overrides       AttemptOverride[]
   bannedStudents  BannedStudent[]
+  batches         Batch[]
 }
 
 model Question {
@@ -130,4 +138,34 @@ model BannedStudent {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([examId, userId])
+}
+
+model Batch {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  users     User[]
+  exams     Exam[]
+}
+
+model NameChangeRequest {
+  id           String   @id @default(uuid())
+  userId       String
+  newFirstName String
+  newLastName  String
+  status       String   @default("PENDING")
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AdminLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  message   String
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 }

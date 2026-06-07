@@ -35,7 +35,7 @@ export default async function MonitorTestPage({ params }: { params: Promise<{ id
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {exam.submissions.map(sub => (
               <div key={sub.id} className="border border-indigo-100 rounded-xl p-4 bg-indigo-50">
-                <p className="font-bold text-indigo-900">{sub.user.name || sub.user.email}</p>
+                <p className="font-bold text-indigo-900">{sub.user.firstName ? `${sub.user.firstName} ${sub.user.lastName}` : sub.user.email}</p>
                 <p className="text-sm text-indigo-700">{sub.user.email}</p>
                 <div className="mt-2 text-xs text-indigo-600 font-medium flex justify-between">
                   <span>Started: {new Date(sub.submittedAt).toLocaleTimeString()}</span>

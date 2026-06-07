@@ -32,6 +32,7 @@ export async function createExamAction(formData: FormData) {
   const upcomingDays = parseInt(formData.get('upcomingDays') as string, 10) || 10;
   const fullscreenChances = parseInt(formData.get('fullscreenChances') as string, 10) || 5;
   const questionsJson = formData.get('questions') as string;
+  const batchIdsStr = formData.get('batchIds') as string;
 
   if (!title || !duration || !questionsJson) return { error: 'Missing required fields' };
 
@@ -57,6 +58,9 @@ export async function createExamAction(formData: FormData) {
         upcomingDays,
         fullscreenChances,
         createdById: user.id,
+        batches: {
+          connect: batchIdsStr ? JSON.parse(batchIdsStr).map((id: string) => ({ id })) : []
+        },
         questions: {
           create: await Promise.all(questionsData.map(async (q: QuestionInput) => {
             let mediaUrl = null;
@@ -174,33 +178,6 @@ export async function deleteUserAction(userId: string) {
   return { success: true };
 }
 
-export async function resetPasswordAction(userId: string, newPassword: string) {
-  const currentUser = await getUser();
-  if (!currentUser || currentUser.role !== 'ADMIN') return { error: 'Unauthorized' };
-
-  if (!newPassword || newPassword.length < 6) return { error: 'Password must be at least 6 characters' };
-
-  const target = await prisma.user.findUnique({ where: { id: userId } });
-  if (!target) return { error: 'User not found' };
-
-  // Regular admins can only reset student passwords
-  if (target.role === 'ADMIN' && !currentUser.isSuperAdmin) {
-    return { error: 'Only Super Admin can reset admin passwords' };
-  }
-
-  if (target.isSuperAdmin && target.id !== currentUser.id) {
-    return { error: 'Cannot reset Super Admin password' };
-  }
-
-  const hashedPassword = await bcrypt.hash(newPassword, 10);
-  await prisma.user.update({
-    where: { id: userId },
-    data: { password: hashedPassword }
-  });
-
-  revalidatePath('/dashboard/admin/users');
-  return { success: true };
-}
 
 export async function updateEmailAction(userId: string, newEmail: string) {
   const currentUser = await getUser();
@@ -287,6 +264,7 @@ export async function bulkUploadTextAction(formData: FormData) {
   if (!user || user.role !== 'ADMIN') return { error: 'Unauthorized' };
 
   const text = formData.get('content') as string;
+  const batchIdsStr = formData.get('batchIds') as string;
   if (!text) return { error: 'No content provided' };
 
   const tests = text.split('TEST_START').filter(t => t.trim().length > 0);
@@ -338,6 +316,9 @@ export async function bulkUploadTextAction(formData: FormData) {
           durationMinutes: duration,
           isDraft: true,
           createdById: user.id,
+          batches: {
+            connect: batchIdsStr ? JSON.parse(batchIdsStr).map((id: string) => ({ id })) : []
+          },
           questions: {
             create: questions.map(q => ({
               text: q.text,
@@ -410,12 +391,13 @@ export async function searchStudentsAction(query: string) {
       where: {
         role: 'STUDENT',
         OR: [
-          { name: { contains: query } },
-          { email: { contains: query } }
+          { email: { contains: query } },
+          { firstName: { contains: query } },
+          { lastName: { contains: query } }
         ]
       },
       take: 10,
-      select: { id: true, name: true, email: true }
+      select: { id: true, firstName: true, lastName: true, email: true }
     });
     return { students };
   } catch {
@@ -458,7 +440,7 @@ export async function getLiveSubmissionAction(submissionId: string) {
     const sub = await prisma.submission.findUnique({
       where: { id: submissionId },
       include: {
-        user: { select: { name: true, email: true } },
+        user: { select: { firstName: true, lastName: true, email: true } },
         exam: {
           include: {
             questions: { include: { options: true } }

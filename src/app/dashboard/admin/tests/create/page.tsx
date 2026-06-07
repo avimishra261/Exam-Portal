@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createExamAction } from '@/app/actions/admin';
+import { getBatchesAction } from '@/app/actions/adminExtended';
 import { useRouter } from 'next/navigation';
 
 type QType = 'MCQ' | 'MSQ' | 'NAT' | 'DESCRIPTIVE';
@@ -34,6 +35,12 @@ export default function CreateTestPage() {
   const [fullscreenChances, setFullscreenChances] = useState('5');
   const [questions, setQuestions] = useState<Question[]>([]);
   const [saving, setSaving] = useState(false);
+  const [availableBatches, setAvailableBatches] = useState<any[]>([]);
+  const [selectedBatches, setSelectedBatches] = useState<string[]>([]);
+
+  useEffect(() => {
+    getBatchesAction().then(setAvailableBatches);
+  }, []);
 
   const addQuestion = (type: QType) => {
     setQuestions([
@@ -97,6 +104,7 @@ export default function CreateTestPage() {
     formData.append('endTime', endTime);
     formData.append('upcomingDays', upcomingDays);
     formData.append('fullscreenChances', fullscreenChances);
+    formData.append('batchIds', JSON.stringify(selectedBatches));
 
     const questionsPayload = questions.map((q) => {
       const qPayload: any = { ...q, mediaFileId: q.mediaFile ? q.id : null };
@@ -159,6 +167,26 @@ export default function CreateTestPage() {
             </label>
             <input type="number" min="1" value={fullscreenChances} onChange={e => setFullscreenChances(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white" />
             <p className="text-xs text-gray-400 mt-1">Default: 5 exits. Test auto-submits if user exceeds this limit.</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Assign to Batches (Optional)</label>
+            <div className="flex flex-wrap gap-2">
+              {availableBatches.map(b => (
+                <label key={b.id} className={`px-3 py-1.5 rounded-full text-sm font-medium border cursor-pointer transition ${selectedBatches.includes(b.id) ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>
+                  <input 
+                    type="checkbox" 
+                    className="hidden"
+                    checked={selectedBatches.includes(b.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) setSelectedBatches([...selectedBatches, b.id]);
+                      else setSelectedBatches(selectedBatches.filter(id => id !== b.id));
+                    }}
+                  />
+                  {b.name}
+                </label>
+              ))}
+            </div>
+            <p className="text-xs text-gray-400 mt-2">If no batches are selected, the test is not assigned to any specific batch (you can still use links if logic allows, but it won't appear in their dashboard).</p>
           </div>
         </form>
       </div>
