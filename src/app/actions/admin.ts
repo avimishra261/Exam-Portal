@@ -242,8 +242,8 @@ export async function grantAttemptOverrideAction(userId: string, examId: string,
     revalidatePath('/dashboard/admin/users');
     revalidatePath('/dashboard/admin/tests');
     return { success: true };
-  } catch (error: any) {
-    console.error('Failed to grant attempt override:', error.message);
+  } catch (error) {
+    console.error('Failed to grant attempt override:', error instanceof Error ? error.message : error);
     return { error: 'Failed to update attempts' };
   }
 }
@@ -308,8 +308,9 @@ export async function bulkUploadTextAction(formData: FormData) {
       i++;
     }
     
-    const questions: any[] = [];
-    let currentQ: any = null;
+    type ParsedQuestion = { text: string; type: string; maxMarks: number; options: { text: string; isCorrect: boolean }[]; correctNumeric?: number; correctText?: string; };
+    const questions: ParsedQuestion[] = [];
+    let currentQ: ParsedQuestion | null = null;
     
     for (; i < lines.length; i++) {
       const line = lines[i];
@@ -345,7 +346,7 @@ export async function bulkUploadTextAction(formData: FormData) {
               correctNumeric: q.correctNumeric || null,
               correctText: q.correctText || null,
               options: ['MCQ', 'MSQ'].includes(q.type) ? {
-                create: q.options.map((o: any) => ({ text: o.text, isCorrect: o.isCorrect }))
+                create: q.options.map((o) => ({ text: o.text, isCorrect: o.isCorrect }))
               } : undefined
             }))
           }
@@ -383,7 +384,7 @@ export async function hideAndEditDatesAction(examId: string, isDraft: boolean, s
   if (!user || user.role !== 'ADMIN') return { error: 'Unauthorized' };
 
   try {
-    const dataToUpdate: any = { isDraft };
+    const dataToUpdate: Record<string, unknown> = { isDraft };
     if (startTimeStr !== undefined) dataToUpdate.startTime = startTimeStr ? new Date(startTimeStr) : null;
     if (endTimeStr !== undefined) dataToUpdate.endTime = endTimeStr ? new Date(endTimeStr) : null;
 
@@ -393,7 +394,7 @@ export async function hideAndEditDatesAction(examId: string, isDraft: boolean, s
     });
     revalidatePath('/dashboard/admin/tests');
     return { success: true };
-  } catch (err: any) {
+  } catch {
     return { error: 'Failed to update test' };
   }
 }
@@ -417,7 +418,7 @@ export async function searchStudentsAction(query: string) {
       select: { id: true, name: true, email: true }
     });
     return { students };
-  } catch (err) {
+  } catch {
     return { error: 'Failed to search students' };
   }
 }
@@ -443,7 +444,7 @@ export async function reopenForStudentAction(examId: string, userId: string, end
 
     revalidatePath('/dashboard/admin/tests');
     return { success: true };
-  } catch (err: any) {
+  } catch (err) {
     console.error('Reopen for student error:', err);
     return { error: 'Failed to reopen test for the student' };
   }
@@ -467,7 +468,7 @@ export async function getLiveSubmissionAction(submissionId: string) {
       }
     });
     return sub;
-  } catch (err) {
+  } catch {
     return null;
   }
 }
