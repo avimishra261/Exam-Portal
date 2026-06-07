@@ -11,14 +11,19 @@ export default function LoginPage() {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const res = await loginAction(formData);
-    
-    if (res?.error) {
-      setError(res.error);
-    } else if (res?.success) {
-      router.push('/dashboard');
-      router.refresh();
+    try {
+      const formData = new FormData(e.currentTarget);
+      const res = await loginAction(formData);
+      
+      if (res?.error) {
+        setError(res.error);
+      } else if (res?.success) {
+        router.push('/dashboard');
+        router.refresh();
+      }
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'An unexpected error occurred during login.');
     }
   }
 

@@ -12,23 +12,28 @@ export async function loginAction(formData: FormData) {
 
   if (!email || !password) return { error: 'Missing fields' };
 
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) return { error: 'Invalid credentials' };
+  try {
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) return { error: 'Invalid credentials' };
 
-  const valid = await bcrypt.compare(password, user.password);
-  if (!valid) return { error: 'Invalid credentials' };
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) return { error: 'Invalid credentials' };
 
-  const token = await signToken({ userId: user.id, role: user.role });
-  
-  const cookieStore = await cookies();
-  cookieStore.set('session', token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: 60 * 60 * 24, // 1 day
-    path: '/'
-  });
+    const token = await signToken({ userId: user.id, role: user.role });
+    
+    const cookieStore = await cookies();
+    cookieStore.set('session', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 60 * 60 * 24, // 1 day
+      path: '/'
+    });
 
-  return { success: true, role: user.role };
+    return { success: true, role: user.role };
+  } catch (error: any) {
+    console.error('Login Error:', error);
+    return { error: 'Internal server error. Please try again.' };
+  }
 }
 
 export async function registerAction(formData: FormData) {
