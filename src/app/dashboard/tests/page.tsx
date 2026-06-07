@@ -3,7 +3,9 @@ import { getUser } from '@/lib/auth';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
-export default async function TestsPage() {
+export default async function TestsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+  const resolvedSearchParams = await searchParams;
+  const currentTab = resolvedSearchParams?.tab || 'Active';
   const user = await getUser();
   if (!user) redirect('/login');
   if (user.role === 'ADMIN') redirect('/dashboard/admin/tests');
@@ -82,21 +84,40 @@ export default async function TestsPage() {
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         <h2 className="text-2xl font-bold text-gray-800">Tests</h2>
         <p className="text-gray-500 mt-1">Browse all available tests organized by status.</p>
       </div>
 
-      {tabs.map(tab => (
-        <div key={tab.label}>
-          <div className="flex items-center gap-3 mb-4">
-            <h3 className="text-lg font-semibold text-gray-800">{tab.label}</h3>
-            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${colorClasses[tab.color].badge}`}>
-              {tab.tests.length}
-            </span>
-          </div>
+      <div className="flex overflow-x-auto space-x-1 bg-gray-100/80 p-1.5 rounded-xl border border-gray-200/60 sticky top-4 z-10 backdrop-blur-sm">
+        {tabs.map(tab => {
+          const isActive = tab.label === currentTab;
+          return (
+            <Link 
+              key={tab.label}
+              href={`/dashboard/tests?tab=${tab.label}`}
+              className={`flex-1 min-w-[120px] text-center py-2.5 rounded-lg text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${
+                isActive 
+                  ? 'bg-white text-gray-900 shadow-sm ring-1 ring-black/5' 
+                  : 'text-gray-500 hover:text-gray-800 hover:bg-gray-200/50'
+              }`}
+            >
+              {tab.label}
+              <span className={`px-2 py-0.5 rounded-full text-xs font-bold transition-colors ${isActive ? colorClasses[tab.color].badge : 'bg-gray-200 text-gray-500'}`}>
+                {tab.tests.length}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
 
+      <div className="mt-6">
+      {tabs.map(tab => {
+        if (tab.label !== currentTab) return null;
+        
+        return (
+          <div key={tab.label} className="animate-in fade-in slide-in-from-bottom-2 duration-500">
           {tab.tests.length === 0 ? (
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-center">
               <p className="text-gray-400 text-sm">{tab.emptyMsg}</p>
@@ -159,8 +180,10 @@ export default async function TestsPage() {
               })}
             </div>
           )}
-        </div>
-      ))}
+          </div>
+        );
+      })}
+      </div>
     </div>
   );
 }
