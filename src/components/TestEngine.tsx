@@ -47,6 +47,7 @@ export default function TestEngine({
 
   const [calcOpen, setCalcOpen] = useState(false);
   const [zoomImage, setZoomImage] = useState<string | null>(null);
+  const [showSubmitModal, setShowSubmitModal] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const isSubmitting = useRef(false);
@@ -177,6 +178,8 @@ export default function TestEngine({
     updateStatus(qId, hasAnswer(qId) ? QuestionStatus.ANSWERED : QuestionStatus.NOT_ANSWERED);
     if (currentQIndex < exam.questions.length - 1) {
       navigateTo(currentQIndex + 1);
+    } else {
+      navigateTo(0);
     }
   };
 
@@ -193,6 +196,8 @@ export default function TestEngine({
     updateStatus(qId, hasAnswer(qId) ? QuestionStatus.ANSWERED_AND_MARKED : QuestionStatus.MARKED_FOR_REVIEW);
     if (currentQIndex < exam.questions.length - 1) {
       navigateTo(currentQIndex + 1);
+    } else {
+      navigateTo(0);
     }
   };
 
@@ -451,7 +456,7 @@ export default function TestEngine({
 
           <div className="p-3 bg-[#c0d0e0] border-t border-[#a0a0a0] flex justify-center">
             <button 
-              onClick={() => { if(confirm("Are you sure you want to submit the test?")) handleFinalSubmit() }}
+              onClick={() => setShowSubmitModal(true)}
               className="bg-[#5bc0de] border border-[#46b8da] text-white py-1.5 px-8 text-[13px] font-bold shadow-sm rounded-sm hover:bg-[#46b8da]"
             >
               Submit
@@ -460,6 +465,32 @@ export default function TestEngine({
         </div>
 
       </div>
+
+      {showSubmitModal && (
+        <div className="fixed inset-0 bg-black/60 z-[200] flex items-center justify-center font-sans">
+          <div className="bg-white rounded-lg shadow-2xl p-6 max-w-sm w-full border border-gray-300">
+            <h2 className="text-lg font-bold text-gray-800 mb-2">Submit Test?</h2>
+            <p className="text-sm text-gray-600 mb-6">Are you sure you want to submit the test? You won't be able to change your answers after submission.</p>
+            <div className="flex justify-end gap-3">
+              <button 
+                onClick={() => setShowSubmitModal(false)}
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-bold rounded-md"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={() => {
+                  setShowSubmitModal(false);
+                  handleFinalSubmit();
+                }}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-md"
+              >
+                Yes, Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
     </>
   );

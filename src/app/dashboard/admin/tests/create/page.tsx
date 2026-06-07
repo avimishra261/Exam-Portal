@@ -45,6 +45,8 @@ export default function CreateTestPage() {
         maxMarks: '1',
         options: type === 'MCQ' || type === 'MSQ' ? [
           { text: '', isCorrect: false },
+          { text: '', isCorrect: false },
+          { text: '', isCorrect: false },
           { text: '', isCorrect: false }
         ] : []
       }
