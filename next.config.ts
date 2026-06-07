@@ -2,10 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: 'standalone',
-  experimental: {
-    outputFileTracingIncludes: {
-      '/*': ['./prisma/dev.db'],
-    },
+  serverExternalPackages: ['@prisma/client', 'bcryptjs'],
+  outputFileTracingIncludes: {
+    '/*': ['./prisma/dev.db'],
   },
   /* config options here */
 };
