@@ -39,7 +39,7 @@ export async function loginAction(formData: FormData) {
     return { success: true, role: user.role };
   } catch (error: any) {
     console.error('Login Error:', error);
-    return { error: 'Internal server error. Please try again.' };
+    return { error: 'Internal server error: ' + (error?.message || error) };
   }
 }
 
@@ -98,7 +98,7 @@ export async function registerAction(formData: FormData) {
     return { success: true, pending: true };
   } catch (error: any) {
     console.error('Registration Error:', error);
-    return { error: 'Internal server error. Please try again.' };
+    return { error: 'Internal server error: ' + (error?.message || error) };
   }
 }
 
