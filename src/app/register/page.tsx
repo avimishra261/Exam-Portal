@@ -26,13 +26,19 @@ export default function RegisterPage() {
     setIsPending(true);
     setError('');
     
-    const res = await registerAction(formData);
-    
-    if (res?.error) {
-      setError(res.error);
+    try {
+      const res = await registerAction(formData);
+      
+      if (res?.error) {
+        setError(res.error);
+        setIsPending(false);
+      } else if (res?.pending) {
+        setSuccessMsg('Registration successful! Your account is pending admin approval. You will be notified once admitted.');
+      }
+    } catch (err: any) {
+      console.error(err);
+      setError('An unexpected error occurred. Please try again.');
       setIsPending(false);
-    } else if (res?.pending) {
-      setSuccessMsg('Registration successful! Your account is pending admin approval. You will be notified once admitted.');
     }
   }
 

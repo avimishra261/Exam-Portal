@@ -60,41 +60,46 @@ async function isValidEmail(email: string) {
 }
 
 export async function registerAction(formData: FormData) {
-  const firstName = formData.get('firstName') as string;
-  const lastName = formData.get('lastName') as string;
-  const mobile = formData.get('mobile') as string;
-  const email = formData.get('email') as string;
-  const password = formData.get('password') as string;
+  try {
+    const firstName = formData.get('firstName') as string;
+    const lastName = formData.get('lastName') as string;
+    const mobile = formData.get('mobile') as string;
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
 
-  if (!email || !password || !firstName || !lastName || !mobile) {
-    return { error: 'Missing fields' };
-  }
-  
-  const isValid = await isValidEmail(email);
-  if (!isValid) return { error: 'Invalid email format or domain does not exist' };
-
-  const existing = await prisma.user.findUnique({ where: { email } });
-  if (existing) return { error: 'User already exists' };
-
-  const hashedPassword = await bcrypt.hash(password, 10);
-  
-  const defaultBatch = await prisma.batch.findFirst({ where: { isDefault: true }});
-  
-  const user = await prisma.user.create({
-    data: {
-      firstName,
-      lastName,
-      mobile,
-      email,
-      password: hashedPassword,
-      role: 'STUDENT',
-      status: 'PENDING',
-      batchId: defaultBatch?.id
+    if (!email || !password || !firstName || !lastName || !mobile) {
+      return { error: 'Missing fields' };
     }
-  });
+    
+    const isValid = await isValidEmail(email);
+    if (!isValid) return { error: 'Invalid email format or domain does not exist' };
 
-  // Do NOT sign them in automatically. They must wait for approval.
-  return { success: true, pending: true };
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) return { error: 'User already exists' };
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    const defaultBatch = await prisma.batch.findFirst({ where: { isDefault: true }});
+    
+    const user = await prisma.user.create({
+      data: {
+        firstName,
+        lastName,
+        mobile,
+        email,
+        password: hashedPassword,
+        role: 'STUDENT',
+        status: 'PENDING',
+        batchId: defaultBatch?.id
+      }
+    });
+
+    // Do NOT sign them in automatically. They must wait for approval.
+    return { success: true, pending: true };
+  } catch (error: any) {
+    console.error('Registration Error:', error);
+    return { error: 'Internal server error. Please try again.' };
+  }
 }
 
 export async function logoutAction() {
