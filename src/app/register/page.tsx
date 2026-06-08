@@ -1,6 +1,6 @@
 'use client';
 
-import { registerAction, sendOtpAction } from '@/app/actions/auth';
+import { registerAction } from '@/app/actions/auth';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import Link from 'next/link';
@@ -10,26 +10,6 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [isPending, setIsPending] = useState(false);
-  const [otpSent, setOtpSent] = useState(false);
-
-  async function handleSendOtp(e: React.MouseEvent<HTMLButtonElement>) {
-    e.preventDefault();
-    const emailInput = document.querySelector<HTMLInputElement>('input[name="email"]');
-    if (!emailInput?.value) {
-      setError('Please enter your email first.');
-      return;
-    }
-    setError('');
-    
-    // Call server action to send OTP
-    const res = await sendOtpAction(emailInput.value);
-    if (res.error) {
-      setError(res.error);
-    } else {
-      setOtpSent(true);
-      setError('An OTP has been sent to your email. (Check server console)');
-    }
-  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -104,36 +84,14 @@ export default function RegisterPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-            <div className="flex gap-2">
-              <input 
-                type="email" 
-                name="email" 
-                required 
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                placeholder="you@example.com"
-              />
-              <button 
-                onClick={handleSendOtp}
-                type="button"
-                className="whitespace-nowrap px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-medium rounded-lg border border-gray-300"
-              >
-                {otpSent ? 'Resend OTP' : 'Send OTP'}
-              </button>
-            </div>
+            <input 
+              type="email" 
+              name="email" 
+              required 
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              placeholder="you@example.com"
+            />
           </div>
-
-          {otpSent && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Verification OTP</label>
-              <input 
-                required 
-                name="otp" 
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-blue-50"
-                placeholder="Enter 6-digit OTP"
-                maxLength={6}
-              />
-            </div>
-          )}
           
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -162,7 +120,7 @@ export default function RegisterPage() {
 
           <button 
             type="submit" 
-            disabled={!otpSent || isPending}
+            disabled={isPending}
             className="w-full mt-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-2.5 rounded-lg transition-colors shadow-sm"
           >
             {isPending ? 'Submitting...' : 'Register as Student'}

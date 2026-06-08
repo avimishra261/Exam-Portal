@@ -43,31 +43,20 @@ export async function loginAction(formData: FormData) {
   }
 }
 
-const otpStore = new Map<string, string>();
-
-function isValidEmail(email: string) {
+async function isValidEmail(email: string) {
   const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
   if (!emailRegex.test(email)) return false;
-  const invalidDomains = ['.local', '.test', '.example', '.invalid', '.localhost'];
-  return !invalidDomains.some(ext => email.toLowerCase().endsWith(ext));
-}
-
-export async function sendOtpAction(email: string) {
-  if (!isValidEmail(email)) return { error: 'Please provide a valid email address (e.g., example@gmail.com).' };
-
-  const existing = await prisma.user.findUnique({ where: { email } });
-  if (existing) return { error: 'User already exists with this email.' };
-
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  otpStore.set(email, otp);
   
-  // MOCK SEND EMAIL
-  console.log(`\n\n================================`);
-  console.log(`[MOCK EMAIL] To: ${email}`);
-  console.log(`Your ExamPortal Verification OTP is: ${otp}`);
-  console.log(`================================\n\n`);
-  
-  return { success: true };
+  const domain = email.split('@')[1];
+  try {
+    const dns = require('dns');
+    const { promisify } = require('util');
+    const resolveMx = promisify(dns.resolveMx);
+    const addresses = await resolveMx(domain);
+    return addresses && addresses.length > 0;
+  } catch (e) {
+    return false;
+  }
 }
 
 export async function registerAction(formData: FormData) {
@@ -76,22 +65,16 @@ export async function registerAction(formData: FormData) {
   const mobile = formData.get('mobile') as string;
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
-  const otp = formData.get('otp') as string;
 
-  if (!email || !password || !firstName || !lastName || !mobile || !otp) {
+  if (!email || !password || !firstName || !lastName || !mobile) {
     return { error: 'Missing fields' };
   }
   
-  if (!isValidEmail(email)) return { error: 'Invalid email format' };
-
-  if (otpStore.get(email) !== otp) {
-    return { error: 'Invalid or expired OTP' };
-  }
+  const isValid = await isValidEmail(email);
+  if (!isValid) return { error: 'Invalid email format or domain does not exist' };
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) return { error: 'User already exists' };
-
-  otpStore.delete(email);
 
   const hashedPassword = await bcrypt.hash(password, 10);
   
