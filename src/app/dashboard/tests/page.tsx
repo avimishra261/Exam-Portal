@@ -110,12 +110,12 @@ export default async function TestsPage({ searchParams }: { searchParams: Promis
               href={`/dashboard/tests?tab=${tab.label}`}
               className={`flex-1 min-w-[120px] text-center py-2.5 rounded-lg text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${
                 isActive 
-                  ? 'bg-white text-gray-900 shadow-sm ring-1 ring-black/5' 
+                  ? 'bg-blue-600 text-white shadow-md' 
                   : 'text-gray-500 hover:text-gray-800 hover:bg-gray-200/50'
               }`}
             >
               {tab.label}
-              <span className={`px-2 py-0.5 rounded-full text-xs font-bold transition-colors ${isActive ? colorClasses[tab.color].badge : 'bg-gray-200 text-gray-500'}`}>
+              <span className={`px-2 py-0.5 rounded-full text-xs font-bold transition-colors ${isActive ? 'bg-white text-blue-600' : 'bg-gray-200 text-gray-500'}`}>
                 {tab.tests.length}
               </span>
             </Link>

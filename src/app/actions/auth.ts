@@ -66,8 +66,9 @@ export async function registerAction(formData: FormData) {
     const mobile = formData.get('mobile') as string;
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
+    const batchId = formData.get('batchId') as string;
 
-    if (!email || !password || !firstName || !lastName || !mobile) {
+    if (!email || !password || !firstName || !lastName || !mobile || !batchId) {
       return { error: 'Missing fields' };
     }
     
@@ -80,6 +81,7 @@ export async function registerAction(formData: FormData) {
     const hashedPassword = await bcrypt.hash(password, 10);
     
     const defaultBatch = await prisma.batch.findFirst({ where: { isDefault: true }});
+    const finalBatchId = batchId ? batchId : defaultBatch?.id;
     
     const user = await prisma.user.create({
       data: {
@@ -90,7 +92,7 @@ export async function registerAction(formData: FormData) {
         password: hashedPassword,
         role: 'STUDENT',
         status: 'PENDING',
-        batchId: defaultBatch?.id
+        batchId: finalBatchId
       }
     });
 

@@ -62,12 +62,13 @@ export async function createBatchAction(name: string) {
 
   try {
     await prisma.batch.create({
-      data: { name }
+      data: { name: name.trim() }
     });
     revalidatePath('/dashboard/admin/batches');
     return { success: true };
-  } catch (e) {
-    return { error: 'Batch name must be unique' };
+  } catch (e: any) {
+    if (e?.code === 'P2002') return { error: 'Batch name must be unique' };
+    return { error: 'An unexpected error occurred while creating batch' };
   }
 }
 

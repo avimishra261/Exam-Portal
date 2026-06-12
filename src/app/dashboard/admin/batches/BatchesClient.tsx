@@ -1,9 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { createBatchAction, deleteBatchAction } from '@/app/actions/adminExtended';
 
 export default function BatchesClient({ batches }: { batches: any[] }) {
+  const router = useRouter();
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -17,6 +20,7 @@ export default function BatchesClient({ batches }: { batches: any[] }) {
       setError(res.error);
     } else {
       setName('');
+      router.refresh();
     }
     setLoading(false);
   };
@@ -25,6 +29,7 @@ export default function BatchesClient({ batches }: { batches: any[] }) {
     if (!confirm('Are you sure you want to delete this batch?')) return;
     const res = await deleteBatchAction(id);
     if (res.error) alert(res.error);
+    else router.refresh();
   };
 
   return (
@@ -52,7 +57,7 @@ export default function BatchesClient({ batches }: { batches: any[] }) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {batches.map(b => (
-          <div key={b.id} className="border border-gray-200 rounded-xl p-5 bg-gray-50 relative">
+          <Link href={`/dashboard/admin/batches/${b.id}`} key={b.id} className="block border border-gray-200 rounded-xl p-5 bg-gray-50 hover:bg-white hover:shadow-md transition relative group cursor-pointer">
             <h3 className="font-bold text-lg text-gray-800 mb-1">
               {b.name} 
               {b.isDefault && <span className="ml-2 text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full align-middle">Default</span>}
@@ -62,13 +67,13 @@ export default function BatchesClient({ batches }: { batches: any[] }) {
             </p>
             {!b.isDefault && (
               <button 
-                onClick={() => handleDelete(b.id)}
-                className="text-red-600 hover:text-red-800 text-sm font-medium"
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDelete(b.id); }}
+                className="text-red-600 hover:text-red-800 text-sm font-medium opacity-100 md:opacity-0 group-hover:opacity-100 transition absolute bottom-5 right-5"
               >
                 Delete
               </button>
             )}
-          </div>
+          </Link>
         ))}
       </div>
     </div>

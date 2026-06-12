@@ -1,14 +1,153 @@
 import prisma from '@/lib/prisma';
 import { getUser } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import AIInsights from '@/components/AIInsights';
 import PieChart from '@/components/PieChart';
 
-export default async function ReportsPage() {
+export default async function ReportsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+  const resolvedSearchParams = await searchParams;
+  const currentTab = resolvedSearchParams?.tab || 'test';
   const user = await getUser();
   if (!user) redirect('/login');
 
-  const whereClause = user.role === 'ADMIN' ? {} : { userId: user.id };
+  const isAdmin = user.role === 'ADMIN';
+
+  // --- TAB: BATCH-WISE (Admin only) ---
+  if (isAdmin && currentTab === 'batch') {
+    const batches = await prisma.batch.findMany({
+      include: {
+        users: {
+          include: {
+            submissions: { where: { status: 'COMPLETED' } }
+          }
+        }
+      }
+    });
+
+    const batchStats = batches.map(b => {
+      let totalScore = 0;
+      let totalMax = 0;
+      let testsTaken = 0;
+      b.users.forEach(u => {
+        u.submissions.forEach(s => {
+          totalScore += Math.max(0, s.score || 0);
+          totalMax += (s.maxScore || 1);
+          testsTaken++;
+        });
+      });
+      const accuracy = totalMax > 0 ? Math.round((totalScore / totalMax) * 100) : 0;
+      return { id: b.id, name: b.name, studentsCount: b.users.length, testsTaken, accuracy };
+    }).sort((a, b) => b.accuracy - a.accuracy);
+
+    return (
+      <div className="space-y-6 pb-12">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <h2 className="text-2xl font-bold text-gray-800">Reports</h2>
+          <p className="text-gray-500 mt-1">Batch-wise performance analysis.</p>
+          <div className="flex space-x-4 mt-6 border-b border-gray-100">
+            <Link href="?tab=test" className="pb-3 text-sm font-semibold border-b-2 border-transparent text-gray-500 hover:text-gray-800">Test-wise</Link>
+            <Link href="?tab=batch" className="pb-3 text-sm font-semibold border-b-2 border-blue-600 text-blue-600">Batch-wise</Link>
+            <Link href="?tab=student" className="pb-3 text-sm font-semibold border-b-2 border-transparent text-gray-500 hover:text-gray-800">Student-wise</Link>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 overflow-x-auto">
+          <table className="w-full text-left min-w-[600px]">
+            <thead>
+              <tr className="bg-gray-50 text-gray-600 text-xs font-bold uppercase tracking-wider">
+                <th className="p-4 border-b border-gray-200">Batch Name</th>
+                <th className="p-4 border-b border-gray-200">Students</th>
+                <th className="p-4 border-b border-gray-200">Tests Taken</th>
+                <th className="p-4 border-b border-gray-200">Avg Accuracy</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {batchStats.map(b => (
+                <tr key={b.id} className="hover:bg-gray-50/50 transition">
+                  <td className="p-4 font-bold text-gray-900">{b.name}</td>
+                  <td className="p-4 text-gray-600">{b.studentsCount}</td>
+                  <td className="p-4 text-gray-600">{b.testsTaken}</td>
+                  <td className="p-4">
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${b.accuracy >= 70 ? 'bg-green-100 text-green-700' : b.accuracy >= 40 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
+                      {b.accuracy}%
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
+
+  // --- TAB: STUDENT-WISE (Admin only) ---
+  if (isAdmin && currentTab === 'student') {
+    const students = await prisma.user.findMany({
+      where: { role: 'STUDENT' },
+      include: {
+        submissions: { where: { status: 'COMPLETED' } },
+        batch: true
+      }
+    });
+
+    const studentStats = students.map(u => {
+      let totalScore = 0;
+      let totalMax = 0;
+      let testsTaken = u.submissions.length;
+      u.submissions.forEach(s => {
+        totalScore += Math.max(0, s.score || 0);
+        totalMax += (s.maxScore || 1);
+      });
+      const accuracy = totalMax > 0 ? Math.round((totalScore / totalMax) * 100) : 0;
+      return { id: u.id, name: u.firstName ? `${u.firstName} ${u.lastName}` : u.email, batch: u.batch?.name || 'None', testsTaken, totalScore, accuracy };
+    }).sort((a, b) => b.accuracy - a.accuracy);
+
+    return (
+      <div className="space-y-6 pb-12">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <h2 className="text-2xl font-bold text-gray-800">Reports</h2>
+          <p className="text-gray-500 mt-1">Student-wise performance analysis.</p>
+          <div className="flex space-x-4 mt-6 border-b border-gray-100">
+            <Link href="?tab=test" className="pb-3 text-sm font-semibold border-b-2 border-transparent text-gray-500 hover:text-gray-800">Test-wise</Link>
+            <Link href="?tab=batch" className="pb-3 text-sm font-semibold border-b-2 border-transparent text-gray-500 hover:text-gray-800">Batch-wise</Link>
+            <Link href="?tab=student" className="pb-3 text-sm font-semibold border-b-2 border-blue-600 text-blue-600">Student-wise</Link>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 overflow-x-auto">
+          <table className="w-full text-left min-w-[600px]">
+            <thead>
+              <tr className="bg-gray-50 text-gray-600 text-xs font-bold uppercase tracking-wider">
+                <th className="p-4 border-b border-gray-200">Student Name</th>
+                <th className="p-4 border-b border-gray-200">Batch</th>
+                <th className="p-4 border-b border-gray-200">Tests Taken</th>
+                <th className="p-4 border-b border-gray-200">Total Marks</th>
+                <th className="p-4 border-b border-gray-200">Avg Accuracy</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {studentStats.map(s => (
+                <tr key={s.id} className="hover:bg-gray-50/50 transition">
+                  <td className="p-4 font-bold text-gray-900">{s.name}</td>
+                  <td className="p-4 text-gray-600">{s.batch}</td>
+                  <td className="p-4 text-gray-600">{s.testsTaken}</td>
+                  <td className="p-4 text-gray-600">{s.totalScore.toFixed(1)}</td>
+                  <td className="p-4">
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${s.accuracy >= 70 ? 'bg-green-100 text-green-700' : s.accuracy >= 40 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
+                      {s.accuracy}%
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
+
+  // --- TAB: TEST-WISE (Default & Student View) ---
+  const whereClause = isAdmin ? {} : { userId: user.id };
 
   const submissions = await prisma.submission.findMany({
     where: whereClause,
@@ -34,17 +173,12 @@ export default async function ReportsPage() {
     );
   }
 
-  // Cumulative stats
   const totalTests = submissions.length;
-  
   let totalScoreObtained = 0;
   let totalMaxScore = 0;
-  
   let totalCorrectAnswers = 0;
   let totalWrongAnswers = 0;
   let totalUnattempted = 0;
-
-  // Per-type cumulative (marks based)
   const typeStats: Record<string, { totalMarks: number; obtainedMarks: number }> = {};
   
   for (const sub of submissions) {
@@ -58,7 +192,7 @@ export default async function ReportsPage() {
 
       if (!typeStats[qType]) typeStats[qType] = { totalMarks: 0, obtainedMarks: 0 };
       typeStats[qType].totalMarks += maxMarks;
-      typeStats[qType].obtainedMarks += Math.max(0, obtained); // Non-negative for progress bar
+      typeStats[qType].obtainedMarks += Math.max(0, obtained);
 
       if (ans.selectedOptionIds === null && ans.numericAnswer === null && !ans.textAnswer) {
         totalUnattempted++;
@@ -78,29 +212,16 @@ export default async function ReportsPage() {
     { label: 'Unattempted', value: totalUnattempted, color: '#e5e7eb' },
   ];
 
-  // Score trend data
   const scoreTrend = await Promise.all(submissions.map(async s => {
     const score = Math.max(0, s.score || 0);
     const max = s.maxScore || 1;
     
-    // Calculate rank
     const higherScoresCount = await prisma.submission.count({
-      where: {
-        examId: s.examId,
-        status: 'COMPLETED',
-        score: { gt: score }
-      }
+      where: { examId: s.examId, status: 'COMPLETED', score: { gt: score } }
     });
-    
     const sameScoreEarlierCount = await prisma.submission.count({
-      where: {
-        examId: s.examId,
-        status: 'COMPLETED',
-        score: score,
-        submittedAt: { lt: s.submittedAt }
-      }
+      where: { examId: s.examId, status: 'COMPLETED', score: score, submittedAt: { lt: s.submittedAt } }
     });
-    
     const rank = higherScoresCount + sameScoreEarlierCount + 1;
 
     return {
@@ -114,7 +235,6 @@ export default async function ReportsPage() {
     };
   }));
 
-  // Best and worst
   const bestTest = scoreTrend.reduce((best, curr) => curr.pct > best.pct ? curr : best, scoreTrend[0]);
   const worstTest = scoreTrend.reduce((worst, curr) => curr.pct < worst.pct ? curr : worst, scoreTrend[0]);
 
@@ -123,15 +243,20 @@ export default async function ReportsPage() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         <h2 className="text-2xl font-bold text-gray-800">Reports</h2>
         <p className="text-gray-500 mt-1">
-          {user.role === 'ADMIN'
-            ? 'Cumulative performance report across all students and tests.'
-            : 'Your cumulative performance across all tests combined.'}
+          {isAdmin ? 'Cumulative performance report across all students and tests.' : 'Your cumulative performance across all tests combined.'}
         </p>
+        
+        {isAdmin && (
+          <div className="flex space-x-4 mt-6 border-b border-gray-100">
+            <Link href="?tab=test" className="pb-3 text-sm font-semibold border-b-2 border-blue-600 text-blue-600">Test-wise</Link>
+            <Link href="?tab=batch" className="pb-3 text-sm font-semibold border-b-2 border-transparent text-gray-500 hover:text-gray-800">Batch-wise</Link>
+            <Link href="?tab=student" className="pb-3 text-sm font-semibold border-b-2 border-transparent text-gray-500 hover:text-gray-800">Student-wise</Link>
+          </div>
+        )}
       </div>
 
-      {user.role !== 'ADMIN' && <AIInsights />}
+      {!isAdmin && <AIInsights />}
 
-      {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 text-center">
           <p className="text-xs font-semibold text-gray-400 uppercase">Tests Taken</p>
@@ -157,7 +282,6 @@ export default async function ReportsPage() {
           <PieChart segments={pieSegments} size={220} />
         </div>
 
-        {/* Type-wise Accuracy */}
         <div className="col-span-1 lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-6">Accuracy by Question Type</h3>
           <div className="space-y-6">
@@ -182,7 +306,6 @@ export default async function ReportsPage() {
         </div>
       </div>
 
-      {/* Highlights */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-green-50 border border-green-200 rounded-xl p-6">
           <div className="flex justify-between items-start">
@@ -210,7 +333,6 @@ export default async function ReportsPage() {
         </div>
       </div>
 
-      {/* Score Trend Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-4">Score Trend</h3>
         <div className="overflow-x-auto">
@@ -249,9 +371,9 @@ export default async function ReportsPage() {
                   </td>
                   <td className="p-4 text-xs font-medium text-gray-400">{new Date(s.date).toLocaleDateString()}</td>
                   <td className="p-4">
-                    <a href={`/dashboard/analysis/${s.id}`} className="text-sm font-medium text-blue-600 hover:text-blue-800">
+                    <Link href={`/dashboard/analysis/${s.id}`} className="text-sm font-medium text-blue-600 hover:text-blue-800">
                       View Analysis
-                    </a>
+                    </Link>
                   </td>
                 </tr>
               ))}

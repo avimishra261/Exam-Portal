@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { makeAdminAction, demoteAdminAction, deleteUserAction, updateEmailAction, grantAttemptOverrideAction, banStudentAction } from '@/app/actions/admin';
 
 interface UserRow {
@@ -24,6 +25,7 @@ export default function UserTable({
   overrides?: any[];
   bannedStudents?: any[];
 }) {
+  const router = useRouter();
   const [feedback, setFeedback] = useState<Record<string, string>>({});
   const [editingEmail, setEditingEmail] = useState<string | null>(null);
   const [editingAttempts, setEditingAttempts] = useState<string | null>(null);
@@ -41,21 +43,21 @@ export default function UserTable({
   const handleMakeAdmin = async (userId: string) => {
     const res = await makeAdminAction(userId);
     if (res.error) showFeedback(userId, `Error: ${res.error}`);
-    else showFeedback(userId, 'Promoted to Admin!');
+    else { showFeedback(userId, 'Promoted to Admin!'); router.refresh(); }
   };
 
   const handleDemote = async (userId: string) => {
     if (!confirm('Are you sure you want to demote this admin?')) return;
     const res = await demoteAdminAction(userId);
     if (res.error) showFeedback(userId, `Error: ${res.error}`);
-    else showFeedback(userId, 'Demoted to Student!');
+    else { showFeedback(userId, 'Demoted to Student!'); router.refresh(); }
   };
 
   const handleDelete = async (userId: string) => {
     if (!confirm('This will permanently delete the user and all their data. Are you sure?')) return;
     const res = await deleteUserAction(userId);
     if (res.error) showFeedback(userId, `Error: ${res.error}`);
-    else showFeedback(userId, 'User deleted.');
+    else { showFeedback(userId, 'User deleted.'); router.refresh(); }
   };
 
 
@@ -67,7 +69,7 @@ export default function UserTable({
     }
     const res = await updateEmailAction(userId, newEmail);
     if (res.error) showFeedback(userId, `Error: ${res.error}`);
-    else { showFeedback(userId, 'Email updated!'); setEditingEmail(null); setNewEmail(''); }
+    else { showFeedback(userId, 'Email updated!'); setEditingEmail(null); setNewEmail(''); router.refresh(); }
   };
 
   const handleGrantOverride = async (userId: string) => {
@@ -86,6 +88,7 @@ export default function UserTable({
     else { 
       showFeedback(userId, 'Overrides applied!'); 
       setEditingAttempts(null); 
+      router.refresh();
     }
   };
 
@@ -98,6 +101,7 @@ export default function UserTable({
     if (res.error) showFeedback(userId, `Error: ${res.error}`);
     else { 
       showFeedback(userId, isBanned ? 'User banned from test.' : 'User ban removed.'); 
+      router.refresh();
     }
   };
 
