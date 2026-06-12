@@ -218,6 +218,13 @@ export default function TestEngine({
     try {
       if (document.documentElement.requestFullscreen) {
         await document.documentElement.requestFullscreen();
+        try {
+          if ('keyboard' in navigator && (navigator as any).keyboard?.lock) {
+            await (navigator as any).keyboard.lock(['Escape', 'F11']);
+          }
+        } catch (e) {
+          console.warn('Keyboard lock not supported', e);
+        }
       }
       setIsFullscreenError(false);
       setWarningReason("");
@@ -230,6 +237,13 @@ export default function TestEngine({
     try {
       if (document.documentElement.requestFullscreen) {
         await document.documentElement.requestFullscreen();
+        try {
+          if ('keyboard' in navigator && (navigator as any).keyboard?.lock) {
+            await (navigator as any).keyboard.lock(['Escape', 'F11']);
+          }
+        } catch (e) {
+          console.warn('Keyboard lock not supported', e);
+        }
       }
       setStarted(true);
       // Immediately register the session so live monitoring works
