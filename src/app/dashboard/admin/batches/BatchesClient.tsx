@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createBatchAction, deleteBatchAction } from '@/app/actions/adminExtended';
@@ -9,7 +9,10 @@ export default function BatchesClient({ batches }: { batches: any[] }) {
   const router = useRouter();
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const [error, setError] = useState('');
+
+  const isMutating = loading || isPending;
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,18 +21,29 @@ export default function BatchesClient({ batches }: { batches: any[] }) {
     const res = await createBatchAction(name);
     if (res.error) {
       setError(res.error);
+      setLoading(false);
     } else {
       setName('');
-      router.refresh();
+      startTransition(() => {
+        router.refresh();
+        setLoading(false);
+      });
     }
-    setLoading(false);
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this batch?')) return;
+    setLoading(true);
     const res = await deleteBatchAction(id);
-    if (res.error) alert(res.error);
-    else router.refresh();
+    if (res.error) {
+      alert(res.error);
+      setLoading(false);
+    } else {
+      startTransition(() => {
+        router.refresh();
+        setLoading(false);
+      });
+    }
   };
 
   return (
@@ -48,10 +62,10 @@ export default function BatchesClient({ batches }: { batches: any[] }) {
         </div>
         <button 
           type="submit" 
-          disabled={loading}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition"
+          disabled={isMutating}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition disabled:opacity-50"
         >
-          {loading ? 'Creating...' : 'Create Batch'}
+          {isMutating ? 'Creating...' : 'Create Batch'}
         </button>
       </form>
 

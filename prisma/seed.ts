@@ -15,14 +15,15 @@ async function main() {
         email: adminEmail,
         password: hashedPassword,
         role: 'ADMIN',
-        isSuperAdmin: true
+        isSuperAdmin: true,
+        status: 'APPROVED'
       }
     })
     console.log('Seeded Super Admin user:', adminEmail)
   } else if (!existing.isSuperAdmin) {
     await prisma.user.update({
       where: { email: adminEmail },
-      data: { isSuperAdmin: true }
+      data: { isSuperAdmin: true, status: 'APPROVED' }
     })
     console.log('Updated existing admin to Super Admin')
   }
