@@ -67,9 +67,13 @@ export async function registerAction(formData: FormData) {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
     const batchId = formData.get('batchId') as string;
+    const requestedRole = formData.get('requestedRole') as string === 'ADMIN' ? 'ADMIN' : 'STUDENT';
 
-    if (!email || !password || !firstName || !lastName || !mobile || !batchId) {
+    if (!email || !password || !firstName || !lastName || !mobile) {
       return { error: 'Missing fields' };
+    }
+    if (requestedRole === 'STUDENT' && !batchId) {
+      return { error: 'Please select a batch' };
     }
     
     const isValid = await isValidEmail(email);
@@ -81,7 +85,7 @@ export async function registerAction(formData: FormData) {
     const hashedPassword = await bcrypt.hash(password, 10);
     
     const defaultBatch = await prisma.batch.findFirst({ where: { isDefault: true }});
-    const finalBatchId = batchId ? batchId : defaultBatch?.id;
+    const finalBatchId = (requestedRole === 'STUDENT' && batchId) ? batchId : defaultBatch?.id;
     
     const user = await prisma.user.create({
       data: {
@@ -90,9 +94,9 @@ export async function registerAction(formData: FormData) {
         mobile,
         email,
         password: hashedPassword,
-        role: 'STUDENT',
+        role: requestedRole,
         status: 'PENDING',
-        batchId: finalBatchId
+        batchId: requestedRole === 'STUDENT' ? finalBatchId : null
       }
     });
 

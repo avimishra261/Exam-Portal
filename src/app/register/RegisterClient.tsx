@@ -7,6 +7,7 @@ import Link from 'next/link';
 
 export default function RegisterClient({ batches }: { batches: { id: string, name: string, isDefault: boolean }[] }) {
   const router = useRouter();
+  const [role, setRole] = useState<'STUDENT' | 'ADMIN'>('STUDENT');
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [isPending, setIsPending] = useState(false);
@@ -62,7 +63,7 @@ export default function RegisterClient({ batches }: { batches: { id: string, nam
       <div className="max-w-xl w-full bg-white p-8 rounded-xl shadow-lg border border-gray-100">
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-gray-900">Create Account</h2>
-          <p className="text-gray-500 mt-2">Join ExamPortal as a Student</p>
+          <p className="text-gray-500 mt-2">Join ExamPortal</p>
         </div>
         
         {error && (
@@ -72,6 +73,20 @@ export default function RegisterClient({ batches }: { batches: { id: string, nam
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">I want to register as</label>
+            <div className="flex gap-6 p-1 bg-gray-100 rounded-lg w-fit">
+              <label className={`flex-1 flex items-center justify-center gap-2 cursor-pointer px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${role === 'STUDENT' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
+                <input type="radio" name="requestedRole" value="STUDENT" checked={role === 'STUDENT'} onChange={() => setRole('STUDENT')} className="hidden" />
+                Student
+              </label>
+              <label className={`flex-1 flex items-center justify-center gap-2 cursor-pointer px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${role === 'ADMIN' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
+                <input type="radio" name="requestedRole" value="ADMIN" checked={role === 'ADMIN'} onChange={() => setRole('ADMIN')} className="hidden" />
+                Admin
+              </label>
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
@@ -99,15 +114,17 @@ export default function RegisterClient({ batches }: { batches: { id: string, nam
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Select Batch</label>
-            <select name="batchId" required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white">
-              <option value="">-- Choose your batch --</option>
-              {batches.map(b => (
-                <option key={b.id} value={b.id}>{b.name} {b.isDefault && '(Default)'}</option>
-              ))}
-            </select>
-          </div>
+          {role === 'STUDENT' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Select Batch</label>
+              <select name="batchId" required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white">
+                <option value="">-- Choose your batch --</option>
+                {batches.map(b => (
+                  <option key={b.id} value={b.id}>{b.name} {b.isDefault && '(Default)'}</option>
+                ))}
+              </select>
+            </div>
+          )}
           
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -139,7 +156,7 @@ export default function RegisterClient({ batches }: { batches: { id: string, nam
             disabled={isPending}
             className="w-full mt-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-2.5 rounded-lg transition-colors shadow-sm"
           >
-            {isPending ? 'Submitting...' : 'Register as Student'}
+            {isPending ? 'Submitting...' : `Register as ${role === 'ADMIN' ? 'Admin' : 'Student'}`}
           </button>
         </form>
 
