@@ -55,6 +55,25 @@ export default async function TakeTestPage({ params }: { params: Promise<{ id: s
     include: { answers: true }
   });
 
+  const otherInProgress = await prisma.submission.findFirst({
+    where: { 
+      userId: user.id, 
+      status: 'IN_PROGRESS',
+      examId: { not: exam.id }
+    },
+    include: { exam: true }
+  });
+
+  if (otherInProgress && !draftSubmission) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center max-w-lg mx-auto mt-10">
+        <h2 className="text-xl font-bold text-red-600 mb-2">Another Test in Progress</h2>
+        <p className="text-gray-600 mb-6">You already have an incomplete test ({otherInProgress.exam.title}). Please finish or submit it before starting a new one.</p>
+        <a href="/dashboard/tests" className="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700">Back to Dashboard</a>
+      </div>
+    );
+  }
+
   const initialAnswers: Record<string, any> = {};
   if (draftSubmission) {
     draftSubmission.answers.forEach(a => {

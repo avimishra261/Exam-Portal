@@ -209,8 +209,11 @@ export default function TestEngine({
           isExitFullscreen: true
         })
       });
+      alert(`Warning: You ${isTabSwitch ? 'switched tabs' : 'exited fullscreen'}. The test portal will now close. You have ${exam.fullscreenChances - newExitCount} chances left.`);
+      window.location.href = '/dashboard/tests';
     } catch {
       console.error('pauseTest failed');
+      window.location.href = '/dashboard/tests';
     }
   }
 
@@ -264,7 +267,7 @@ export default function TestEngine({
     }
   };
 
-  function handleFinalSubmit() {
+  const handleFinalSubmit = async () => {
     if (isSubmitting.current) return;
     isSubmitting.current = true;
     const formData = new FormData();
@@ -279,7 +282,14 @@ export default function TestEngine({
         formData.append(`q_${q.id}`, val.toString());
       }
     }
-    onSubmit(formData);
+    try {
+      await onSubmit(formData);
+      window.location.href = '/dashboard/analysis';
+    } catch (err) {
+      console.error(err);
+      isSubmitting.current = false;
+      alert("Failed to submit the test. Please try again.");
+    }
   }
 
   const handleAnswerChange = (qId: string, val: AnswerValue) => {
@@ -425,8 +435,8 @@ export default function TestEngine({
                   const localIdx = exam.questions.filter(sq => (sq.section || 'General') === sec).findIndex(sq => sq.id === q.id);
                   return (
                     <div key={q.id} className="mb-8 bg-gray-50 p-6 border rounded-lg">
-                      <div className="font-bold mb-2">Q.{localIdx + 1} ({q.type}) - Max Marks: {q.maxMarks}</div>
-                      <div className="text-base whitespace-pre-wrap leading-relaxed" dangerouslySetInnerHTML={{ __html: q.text }}></div>
+                      <div className="font-bold mb-2 text-black text-sm">Q.{localIdx + 1} ({q.type}) - Max Marks: {q.maxMarks}</div>
+                      <div className="text-base text-black font-semibold whitespace-pre-wrap leading-relaxed" dangerouslySetInnerHTML={{ __html: q.text }}></div>
                       {q.mediaUrl && <img src={q.mediaUrl} alt="Question" className="max-h-80 mt-4 object-contain" />}
                     </div>
                   );
@@ -442,16 +452,16 @@ export default function TestEngine({
             <h2 className="text-xl font-bold">Instructions</h2>
             <button onClick={() => setShowInstructions(false)} className="text-white hover:text-red-400 font-bold text-lg cursor-pointer">Close X</button>
           </div>
-          <div className="flex-1 overflow-y-auto p-8 max-w-3xl mx-auto w-full text-base">
+          <div className="flex-1 overflow-y-auto p-8 max-w-3xl mx-auto w-full text-base text-black">
             <h3 className="text-2xl font-bold mb-4">Please read the instructions carefully</h3>
-            <ul className="list-disc pl-5 space-y-3 mb-6">
+            <ul className="list-disc pl-5 space-y-3 mb-6 font-medium">
               <li>Total duration of the examination is <strong>{exam.durationMinutes} minutes</strong>.</li>
               <li>The clock will be set at the server. The countdown timer in the top right corner of screen will display the remaining time available for you to complete the examination.</li>
               <li>When the timer reaches zero, the examination will end by itself. You will not be required to end or submit your examination.</li>
               <li>You are allowed a maximum of <strong>{exam.fullscreenChances} warnings</strong> for exiting fullscreen or switching tabs. Exceeding this will automatically submit your test.</li>
             </ul>
             <h4 className="text-xl font-bold mt-8 mb-2">Navigating to a Question</h4>
-            <ul className="list-disc pl-5 space-y-2">
+            <ul className="list-disc pl-5 space-y-2 font-medium">
               <li>Click on the question number in the Question Palette at the right of your screen to go to that numbered question directly.</li>
               <li>Click on <strong>Save & Next</strong> to save your answer for the current question and then go to the next question.</li>
               <li>Click on <strong>Mark for Review & Next</strong> to save your answer for the current question, mark it for review, and then go to the next question.</li>
@@ -666,7 +676,7 @@ export default function TestEngine({
                   <button
                     key={q.id}
                     onClick={() => navigateTo(i)}
-                    className={`w-10 h-9 flex items-center justify-center font-bold text-[13px] shadow-sm relative transition ${getPaletteClass(qStatus[q.id])} ${currentQIndex === i ? 'ring-2 ring-offset-1 ring-blue-500' : ''}`}
+                    className={`w-10 h-9 flex items-center justify-center font-bold text-[13px] shadow-sm relative transition ${getPaletteClass(qStatus[q.id])} ${currentQIndex === i ? 'ring-[3px] ring-black border border-black z-10 scale-110' : ''}`}
                   >
                     {localIdx + 1}
                   </button>
