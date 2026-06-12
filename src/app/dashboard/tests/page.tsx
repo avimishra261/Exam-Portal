@@ -3,6 +3,9 @@ import { getUser } from '@/lib/auth';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function TestsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const resolvedSearchParams = await searchParams;
   const currentTab = resolvedSearchParams?.tab || 'Active';

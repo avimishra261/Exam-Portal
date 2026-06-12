@@ -10,6 +10,10 @@ export async function loginAction(formData: FormData) {
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
 
+  if (!email.toLowerCase().endsWith('@gmail.com')) {
+    return { error: 'Only @gmail.com email addresses are allowed for registration.' };
+  }
+
   if (!email || !password) return { error: 'Missing fields' };
 
   try {

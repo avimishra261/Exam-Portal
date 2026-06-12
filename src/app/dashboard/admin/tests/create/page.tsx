@@ -34,6 +34,7 @@ export default function CreateTestPage() {
   const [endTime, setEndTime] = useState('');
   const [upcomingDays, setUpcomingDays] = useState('10');
   const [fullscreenChances, setFullscreenChances] = useState('5');
+  const [maxAttempts, setMaxAttempts] = useState('1');
   const [shuffleQuestions, setShuffleQuestions] = useState(false);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [saving, setSaving] = useState(false);
@@ -107,6 +108,7 @@ export default function CreateTestPage() {
     formData.append('endTime', endTime);
     formData.append('upcomingDays', upcomingDays);
     formData.append('fullscreenChances', fullscreenChances);
+    formData.append('maxAttempts', maxAttempts);
     formData.append('shuffleQuestions', shuffleQuestions ? 'true' : 'false');
     formData.append('batchIds', JSON.stringify(selectedBatches));
 
@@ -165,12 +167,21 @@ export default function CreateTestPage() {
             <input type="number" min="1" value={upcomingDays} onChange={e => setUpcomingDays(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white" />
             <p className="text-xs text-gray-400 mt-1">Default: 10 days. The test appears in &quot;Upcoming&quot; when it&apos;s within this many days of starting.</p>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Fullscreen Exits Allowed
-            </label>
-            <input type="number" min="1" value={fullscreenChances} onChange={e => setFullscreenChances(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white" />
-            <p className="text-xs text-gray-400 mt-1">Default: 5 exits. Test auto-submits if user exceeds this limit.</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Fullscreen Exits Allowed
+              </label>
+              <input type="number" min="1" value={fullscreenChances} onChange={e => setFullscreenChances(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white" />
+              <p className="text-xs text-gray-400 mt-1">Default: 5 exits.</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Maximum Attempts Allowed
+              </label>
+              <input type="number" min="1" value={maxAttempts} onChange={e => setMaxAttempts(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white" />
+              <p className="text-xs text-gray-400 mt-1">Default: 1 attempt.</p>
+            </div>
           </div>
           <div className="flex items-center gap-3 bg-gray-50 p-4 rounded-lg border border-gray-200">
             <input 

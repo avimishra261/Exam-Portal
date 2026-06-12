@@ -110,8 +110,9 @@ export default function RegisterClient({ batches }: { batches: { id: string, nam
               name="email" 
               required 
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              placeholder="you@example.com"
+              placeholder="you@gmail.com"
             />
+            <p className="text-xs text-red-500 font-medium mt-1">Only @gmail.com addresses are allowed.</p>
           </div>
 
           {role === 'STUDENT' && (

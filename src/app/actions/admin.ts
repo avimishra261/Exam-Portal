@@ -29,6 +29,7 @@ export async function createExamAction(formData: FormData) {
   const endTimeStr = formData.get('endTime') as string;
   const upcomingDays = parseInt(formData.get('upcomingDays') as string, 10) || 10;
   const fullscreenChances = parseInt(formData.get('fullscreenChances') as string, 10) || 5;
+  const maxAttempts = parseInt(formData.get('maxAttempts') as string, 10) || 1;
   const shuffleQuestions = formData.get('shuffleQuestions') === 'true';
   const questionsJson = formData.get('questions') as string;
   const batchIdsStr = formData.get('batchIds') as string;
@@ -52,6 +53,7 @@ export async function createExamAction(formData: FormData) {
         endTime: endTimeStr ? new Date(endTimeStr) : null,
         upcomingDays,
         fullscreenChances,
+        maxAttempts,
         shuffleQuestions,
         createdById: user.id,
         batches: {
