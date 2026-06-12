@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Calculator as CalcIcon } from 'lucide-react';
 import Calculator from './Calculator';
 import ImageZoomModal from './ImageZoomModal';
 import VirtualNumpad from './VirtualNumpad';
@@ -30,9 +31,12 @@ export default function TestEngine({
   const [timeLeft, setTimeLeft] = useState(initialTimeLeft ?? (exam.durationMinutes * 60));
   const [currentQIndex, setCurrentQIndex] = useState(0);
   const [exitCount, setExitCount] = useState(initialExitCount || 0);
+  const [isFullscreenError, setIsFullscreenError] = useState(false);
+  const [warningReason, setWarningReason] = useState("");
   
   // Answers state
   const [answers, setAnswers] = useState<Record<string, AnswerValue>>(initialAnswers);
+  const [questionTimes, setQuestionTimes] = useState<Record<string, number>>({});
   
   const sections = useMemo(() => {
     const s = new Set<string>();
@@ -42,9 +46,11 @@ export default function TestEngine({
 
   const [activeSection, setActiveSection] = useState<string>(sections[0] || 'General');
   const [showQuestionPaper, setShowQuestionPaper] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(false);
 
   
   const shuffledQuestions = useMemo(() => {
+    if (!exam.shuffleQuestions) return exam.questions;
     if (!attemptSeed) return exam.questions;
     function stringToSeed(str: string): number {
         let hash = 0;
@@ -115,15 +121,24 @@ export default function TestEngine({
   const isSubmitting = useRef(false);
 
   useEffect(() => {
-    if (!started) return;
+    if (!started || isFullscreenError) return;
     if (timeLeft <= 0) {
       handleFinalSubmit();
     }
     const timer = setInterval(() => {
       setTimeLeft(prev => prev - 1);
+      
+      // Increment time for the current question
+      const currentQId = shuffledQuestions[currentQIndex]?.id;
+      if (currentQId) {
+        setQuestionTimes(prev => ({
+          ...prev,
+          [currentQId]: (prev[currentQId] || 0) + 1
+        }));
+      }
     }, 1000);
     return () => clearInterval(timer);
-  }, [started, timeLeft]);
+  }, [started, timeLeft, currentQIndex, shuffledQuestions, isFullscreenError]);
 
   useEffect(() => {
     if (!started) return;
@@ -162,9 +177,11 @@ export default function TestEngine({
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
       document.removeEventListener("contextmenu", preventContextMenu);
     };
-  }, [started, answers, timeLeft, exitCount]);
+  }, [started, answers, timeLeft, exitCount, isFullscreenError]);
 
   async function pauseTest(isTabSwitch = false) {
+    if (isFullscreenError) return; // Already in error state
+    
     const newExitCount = exitCount + 1;
     setExitCount(newExitCount);
     
@@ -176,7 +193,9 @@ export default function TestEngine({
     }
 
     const reason = isTabSwitch ? "switched tabs/windows" : "exited fullscreen mode";
-    alert(`You ${reason}. Your test has been paused. Warnings: ${newExitCount}/${exam.fullscreenChances}. You can continue it from the dashboard.`);
+    setWarningReason(reason);
+    setIsFullscreenError(true);
+
     try {
       await fetch('/api/tests/pause', {
         method: 'POST',
@@ -185,6 +204,7 @@ export default function TestEngine({
           examId: exam.id,
           timeLeft,
           answers,
+          questionTimes,
           status: 'IN_PROGRESS',
           isExitFullscreen: true
         })
@@ -192,8 +212,19 @@ export default function TestEngine({
     } catch {
       console.error('pauseTest failed');
     }
-    window.location.href = '/dashboard/tests';
   }
+
+  const resumeFullscreen = async () => {
+    try {
+      if (document.documentElement.requestFullscreen) {
+        await document.documentElement.requestFullscreen();
+      }
+      setIsFullscreenError(false);
+      setWarningReason("");
+    } catch (e) {
+      alert("Fullscreen is required to continue. Please allow fullscreen permissions.");
+    }
+  };
 
   const startTest = async () => {
     try {
@@ -209,6 +240,7 @@ export default function TestEngine({
           examId: exam.id,
           timeLeft: initialTimeLeft ?? (exam.durationMinutes * 60),
           answers,
+          questionTimes,
           status: 'IN_PROGRESS',
           isExitFullscreen: false
         })
@@ -224,6 +256,8 @@ export default function TestEngine({
     const formData = new FormData();
     for (const q of shuffledQuestions) {
       const val = answers[q.id];
+      const time = questionTimes[q.id] || 0;
+      formData.append(`time_${q.id}`, time.toString());
       if (val === undefined || val === null || val === '') continue;
       if (q.type === 'MSQ' && Array.isArray(val)) {
         val.forEach(v => formData.append(`q_${q.id}`, v));
@@ -317,6 +351,30 @@ export default function TestEngine({
     );
   }
 
+  if (isFullscreenError) {
+    return (
+      <div className="fixed inset-0 z-[9999] bg-red-600 flex items-center justify-center p-8 text-center font-sans">
+        <div className="bg-white p-8 rounded-xl shadow-2xl max-w-lg w-full text-gray-800">
+          <h2 className="text-3xl font-bold text-red-600 mb-4">Warning!</h2>
+          <p className="text-lg mb-6">
+            You {warningReason}. This is a violation of the test rules.
+          </p>
+          <p className="text-md mb-8 font-medium bg-red-50 p-4 rounded-lg border border-red-200">
+            Warning: {exitCount} / {exam.fullscreenChances} exits used.
+            <br/>
+            If you exceed the limit, your test will be auto-submitted immediately.
+          </p>
+          <button 
+            onClick={resumeFullscreen}
+            className="w-full py-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg text-lg shadow-md transition"
+          >
+            Acknowledge & Resume Fullscreen
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const currentQ = shuffledQuestions[currentQIndex];
 
   // Specific GATE styling classes
@@ -348,9 +406,9 @@ export default function TestEngine({
             {sections.map(sec => (
               <div key={sec} className="mb-10">
                 <h3 className="text-2xl font-bold text-gray-800 mb-6 border-b pb-2">{sec}</h3>
-                {shuffledQuestions.map((q) => {
+                {exam.questions.map((q) => {
                   if ((q.section || 'General') !== sec) return null;
-                  const localIdx = shuffledQuestions.filter(sq => (sq.section || 'General') === sec).findIndex(sq => sq.id === q.id);
+                  const localIdx = exam.questions.filter(sq => (sq.section || 'General') === sec).findIndex(sq => sq.id === q.id);
                   return (
                     <div key={q.id} className="mb-8 bg-gray-50 p-6 border rounded-lg">
                       <div className="font-bold mb-2">Q.{localIdx + 1} ({q.type}) - Max Marks: {q.maxMarks}</div>
@@ -361,6 +419,29 @@ export default function TestEngine({
                 })}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+      {showInstructions && (
+        <div className="fixed inset-0 z-[200] bg-white flex flex-col h-screen text-[13px] font-sans">
+          <div className="h-14 bg-[#2f3136] text-white flex justify-between items-center px-6 shadow-md">
+            <h2 className="text-xl font-bold">Instructions</h2>
+            <button onClick={() => setShowInstructions(false)} className="text-white hover:text-red-400 font-bold text-lg cursor-pointer">Close X</button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-8 max-w-3xl mx-auto w-full text-base">
+            <h3 className="text-2xl font-bold mb-4">Please read the instructions carefully</h3>
+            <ul className="list-disc pl-5 space-y-3 mb-6">
+              <li>Total duration of the examination is <strong>{exam.durationMinutes} minutes</strong>.</li>
+              <li>The clock will be set at the server. The countdown timer in the top right corner of screen will display the remaining time available for you to complete the examination.</li>
+              <li>When the timer reaches zero, the examination will end by itself. You will not be required to end or submit your examination.</li>
+              <li>You are allowed a maximum of <strong>{exam.fullscreenChances} warnings</strong> for exiting fullscreen or switching tabs. Exceeding this will automatically submit your test.</li>
+            </ul>
+            <h4 className="text-xl font-bold mt-8 mb-2">Navigating to a Question</h4>
+            <ul className="list-disc pl-5 space-y-2">
+              <li>Click on the question number in the Question Palette at the right of your screen to go to that numbered question directly.</li>
+              <li>Click on <strong>Save & Next</strong> to save your answer for the current question and then go to the next question.</li>
+              <li>Click on <strong>Mark for Review & Next</strong> to save your answer for the current question, mark it for review, and then go to the next question.</li>
+            </ul>
           </div>
         </div>
       )}
@@ -387,10 +468,10 @@ export default function TestEngine({
       <div className="bg-[#333333] text-white flex justify-between items-center px-4 py-1.5 z-10 border-b border-[#222]">
         <div className="font-bold text-[#ffeb3b] text-[13px]">{exam.title}</div>
         <div className="flex gap-4 items-center">
-          <button className="flex items-center gap-1.5 hover:text-gray-300">
+          <button onClick={() => setShowInstructions(true)} className="flex items-center gap-1.5 hover:text-gray-300">
             <span className="bg-[#4b8df8] text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold">i</span> Instructions
           </button>
-          <button className="flex items-center gap-1.5 hover:text-gray-300">
+          <button onClick={() => setShowQuestionPaper(true)} className="flex items-center gap-1.5 hover:text-gray-300">
             <span className="bg-[#5cb85c] text-white rounded-sm w-4 h-4 flex items-center justify-center text-[10px] font-bold">📄</span> Question Paper
           </button>
         </div>
@@ -407,18 +488,25 @@ export default function TestEngine({
           {/* Sections & Time Header */}
           <div className="bg-[#f0f0f0] border-b border-[#a0a0a0] flex justify-between items-stretch">
              <div className="flex mt-1">
-               <div className="bg-[#0073b2] text-white px-4 py-1.5 font-bold border-r border-[#a0a0a0] text-[12px] flex items-center truncate max-w-[200px] cursor-pointer">
-                 General Aptitude <span className="ml-2 bg-[#66a3cc] rounded-full w-3.5 h-3.5 inline-flex items-center justify-center text-white text-[9px]">i</span>
-               </div>
-               <div className="bg-white text-[#333] px-4 py-1.5 font-bold border-r border-t border-l border-[#a0a0a0] text-[12px] flex items-center truncate max-w-[250px] cursor-pointer shadow-[0_-2px_0_#4b8df8]">
-                 {exam.title} <span className="ml-2 bg-[#4b8df8] rounded-full w-3.5 h-3.5 inline-flex items-center justify-center text-white text-[9px]">i</span>
-               </div>
+               {sections.map(sec => (
+                 <div 
+                   key={sec}
+                   onClick={() => {
+                     setActiveSection(sec);
+                     const firstIdx = shuffledQuestions.findIndex(q => (q.section || 'General') === sec);
+                     if (firstIdx !== -1) navigateTo(firstIdx);
+                   }}
+                   className={`px-4 py-1.5 font-bold border-r border-t border-l border-[#a0a0a0] text-[12px] flex items-center truncate max-w-[200px] cursor-pointer ${activeSection === sec ? 'bg-white text-[#333] shadow-[0_-2px_0_#4b8df8]' : 'bg-[#0073b2] text-white'}`}
+                 >
+                   {sec} <span className="ml-2 bg-[#4b8df8] rounded-full w-3.5 h-3.5 inline-flex items-center justify-center text-white text-[9px]">i</span>
+                 </div>
+               ))}
              </div>
              <div className="flex items-center px-4 bg-white border-l border-[#a0a0a0] ml-auto">
                 <span className="font-bold text-[13px] text-black mr-6">Time Left : {formatTime(timeLeft)}</span>
-                <button onClick={() => setCalcOpen(!calcOpen)} className="text-red-500 hover:opacity-80" title="Open Calculator">
-                  <div className="w-5 h-6 border-2 border-[#f0a0a0] rounded bg-[#ffe0e0] flex items-center justify-center shadow-sm">
-                    <span className="text-[10px] font-bold text-red-500 leading-none mb-0.5">▦</span>
+                <button onClick={() => setCalcOpen(!calcOpen)} className="text-gray-600 hover:text-gray-900" title="Open Calculator">
+                  <div className="w-8 h-8 rounded bg-gray-100 flex items-center justify-center shadow-sm border border-gray-300">
+                    <CalcIcon className="w-4 h-4 text-gray-700" />
                   </div>
                 </button>
              </div>
@@ -551,21 +639,25 @@ export default function TestEngine({
             </div>
           </div>
 
-          <div className="bg-[#0073b2] text-white px-3 py-1.5 font-bold text-[13px] border-b border-[#005a8f] shadow-sm">General Aptitude</div>
+          <div className="bg-[#0073b2] text-white px-3 py-1.5 font-bold text-[13px] border-b border-[#005a8f] shadow-sm truncate">{activeSection}</div>
           <div className="bg-[#eef5fb] text-black px-3 py-2 font-bold text-[12px]">Choose a Question</div>
 
           {/* Palette Area */}
           <div className="p-3 flex-1 overflow-y-auto bg-[#eef5fb]">
             <div className="flex flex-wrap gap-2.5">
-              {shuffledQuestions.map((q, i) => (
-                <button
-                  key={q.id}
-                  onClick={() => navigateTo(i)}
-                  className={`w-10 h-9 flex items-center justify-center font-bold text-[13px] shadow-sm relative transition ${getPaletteClass(qStatus[q.id])} ${currentQIndex === i ? 'ring-2 ring-offset-1 ring-blue-500' : ''}`}
-                >
-                  {i + 1}
-                </button>
-              ))}
+              {shuffledQuestions.map((q, i) => {
+                if ((q.section || 'General') !== activeSection) return null;
+                const localIdx = shuffledQuestions.filter(sq => (sq.section || 'General') === activeSection).findIndex(sq => sq.id === q.id);
+                return (
+                  <button
+                    key={q.id}
+                    onClick={() => navigateTo(i)}
+                    className={`w-10 h-9 flex items-center justify-center font-bold text-[13px] shadow-sm relative transition ${getPaletteClass(qStatus[q.id])} ${currentQIndex === i ? 'ring-2 ring-offset-1 ring-blue-500' : ''}`}
+                  >
+                    {localIdx + 1}
+                  </button>
+                );
+              })}
             </div>
           </div>
 

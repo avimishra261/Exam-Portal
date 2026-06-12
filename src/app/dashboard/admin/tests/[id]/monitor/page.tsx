@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma';
 import { getUser } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+import AutoRefresh from '@/components/AutoRefresh';
 
 export default async function MonitorTestPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await getUser();
@@ -25,7 +26,7 @@ export default async function MonitorTestPage({ params }: { params: Promise<{ id
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">Live Monitor: {exam.title}</h2>
-          <p className="text-gray-500 mt-1">Students currently taking this test. (Refresh to update)</p>
+          <p className="text-gray-500 mt-1">Students currently taking this test. (Auto-updating)</p>
         </div>
       </div>
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden p-6">
@@ -54,6 +55,7 @@ export default async function MonitorTestPage({ params }: { params: Promise<{ id
           </div>
         )}
       </div>
+      <AutoRefresh intervalMs={5000} />
     </div>
   );
 }

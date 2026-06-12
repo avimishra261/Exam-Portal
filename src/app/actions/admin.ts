@@ -2,8 +2,6 @@
 
 import prisma from '@/lib/prisma';
 import { getUser } from '@/lib/auth';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
 import bcrypt from 'bcryptjs';
 import { revalidatePath } from 'next/cache';
 import type { QuestionInput } from '@/types';
@@ -31,6 +29,7 @@ export async function createExamAction(formData: FormData) {
   const endTimeStr = formData.get('endTime') as string;
   const upcomingDays = parseInt(formData.get('upcomingDays') as string, 10) || 10;
   const fullscreenChances = parseInt(formData.get('fullscreenChances') as string, 10) || 5;
+  const shuffleQuestions = formData.get('shuffleQuestions') === 'true';
   const questionsJson = formData.get('questions') as string;
   const batchIdsStr = formData.get('batchIds') as string;
 
@@ -44,10 +43,6 @@ export async function createExamAction(formData: FormData) {
   }
 
   try {
-    // Ensure uploads directory exists
-    const uploadsDir = join(process.cwd(), 'public', 'uploads');
-    await mkdir(uploadsDir, { recursive: true });
-
     const exam = await prisma.exam.create({
       data: {
         title,
@@ -57,6 +52,7 @@ export async function createExamAction(formData: FormData) {
         endTime: endTimeStr ? new Date(endTimeStr) : null,
         upcomingDays,
         fullscreenChances,
+        shuffleQuestions,
         createdById: user.id,
         batches: {
           connect: batchIdsStr ? JSON.parse(batchIdsStr).map((id: string) => ({ id })) : []
@@ -76,12 +72,9 @@ export async function createExamAction(formData: FormData) {
                   throw new Error(`File too large: ${(file.size / 1024 / 1024).toFixed(1)}MB. Maximum is 5MB.`);
                 }
 
-                const bytes = await file.arrayBuffer();
-                const buffer = Buffer.from(bytes);
-                const filename = `${Date.now()}_${sanitizeFilename(file.name)}`;
-                const filepath = join(uploadsDir, filename);
-                await writeFile(filepath, buffer);
-                mediaUrl = `/uploads/${filename}`;
+                const buffer = Buffer.from(await file.arrayBuffer());
+                const mimeType = file.type || 'image/png';
+                mediaUrl = `data:${mimeType};base64,${buffer.toString('base64')}`;
               }
             }
 

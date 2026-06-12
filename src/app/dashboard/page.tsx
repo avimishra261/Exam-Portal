@@ -19,12 +19,34 @@ export default async function DashboardHome() {
     take: 5
   });
 
-  const takenIds = new Set(submissions.map(s => s.examId));
+  const allSubmissions = await prisma.submission.findMany({
+    where: { userId: user.id }
+  });
 
-  // Active tests: started and not ended, not taken
+  const completedSubmissions = allSubmissions.filter(s => s.status === 'COMPLETED');
+  const inProgressMap = new Set(allSubmissions.filter(s => s.status === 'IN_PROGRESS').map(s => s.examId));
+
+  const submissionsByExam: Record<string, number> = {};
+  completedSubmissions.forEach(s => {
+    submissionsByExam[s.examId] = (submissionsByExam[s.examId] || 0) + 1;
+  });
+
+  const overrides = await prisma.attemptOverride.findMany({
+    where: { userId: user.id }
+  });
+  const overrideMap = new Map(overrides.map(o => [o.examId, o.allowedAttempts]));
+
+  // Active tests: started and not ended, not fully taken
   const activeTests = allExams.filter(e => {
-    if (!e.startTime || !e.endTime) return false;
-    return e.startTime <= now && e.endTime > now && !takenIds.has(e.id);
+    if (e.isDraft) return false;
+    if (e.startTime && e.startTime > now) return false;
+    if (e.endTime && e.endTime < now) return false;
+
+    const attemptsTaken = submissionsByExam[e.id] || 0;
+    const allowedAttempts = overrideMap.has(e.id) ? overrideMap.get(e.id)! : e.maxAttempts;
+    const hasAttemptsLeft = attemptsTaken < allowedAttempts;
+
+    return hasAttemptsLeft || inProgressMap.has(e.id);
   });
 
   // Upcoming tests
@@ -36,8 +58,19 @@ export default async function DashboardHome() {
 
   const totalTests = submissions.length;
   const avgScore = totalTests > 0
-    ? (submissions.reduce((sum, s) => sum + (s.score || 0), 0) / totalTests).toFixed(1)
+    ? (submissions.reduce((sum, s) => sum + (s.score || 0), 0) / totalTests).toFixed(2)
     : '—';
+
+  // Fetch bookmarked questions for this user
+  const bookmarkedAnswers = await prisma.submissionAnswer.findMany({
+    where: {
+      submission: { userId: user.id },
+      isBookmarked: true,
+    },
+    include: { question: true, submission: { include: { exam: true } } },
+    orderBy: { submission: { submittedAt: 'desc' } },
+    take: 5
+  });
 
   return (
     <div className="space-y-6">
@@ -107,12 +140,35 @@ export default async function DashboardHome() {
               {submissions.map(sub => (
                 <li key={sub.id} className="py-3 flex justify-between items-center">
                   <p className="font-medium text-gray-800">{sub.exam.title}</p>
-                  <p className="font-bold text-blue-600">{sub.score} pts</p>
+                  <p className="font-bold text-blue-600">{sub.score !== null ? sub.score.toFixed(2) : 'N/A'} pts</p>
                 </li>
               ))}
             </ul>
           )}
         </div>
+      </div>
+
+      {/* Bookmarked Questions Panel */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mt-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold text-gray-800">Recent Bookmarks</h3>
+          <p className="text-sm text-gray-500 font-medium">Your saved questions for review</p>
+        </div>
+        {bookmarkedAnswers.length === 0 ? (
+          <p className="text-sm text-gray-500">You haven't bookmarked any questions yet. You can bookmark questions from the analysis page after completing a test.</p>
+        ) : (
+          <ul className="divide-y divide-gray-100">
+            {bookmarkedAnswers.map((ans, i) => (
+              <li key={ans.id} className="py-4">
+                <div className="flex justify-between items-start mb-2">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{ans.submission.exam.title}</p>
+                  <Link href={`/dashboard/analysis/${ans.submissionId}`} className="text-xs text-blue-600 hover:underline">View in Analysis &rarr;</Link>
+                </div>
+                <div className="text-sm text-gray-800 line-clamp-2" dangerouslySetInnerHTML={{ __html: ans.question.text }} />
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   );

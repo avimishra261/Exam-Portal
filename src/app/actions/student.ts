@@ -3,6 +3,7 @@
 import prisma from '@/lib/prisma';
 import { getUser } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
 import { GoogleGenAI } from '@google/genai';
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || 'dummy' });
@@ -44,6 +45,10 @@ export async function submitExamAction(examId: string, formData: FormData) {
     let selectedOptionIds = null;
     let numericAnswer = null;
     let textAnswer = null;
+    let timeSpent = 0;
+    const timeStr = formData.get(`time_${q.id}`) as string;
+    if (timeStr) timeSpent = parseInt(timeStr, 10) || 0;
+    
     const maxMarks = q.maxMarks || 1;
     maxScore += maxMarks;
 
@@ -120,6 +125,7 @@ Return ONLY a single number representing the marks awarded (e.g., 2.5, 0, ${maxM
       selectedOptionIds,
       numericAnswer,
       textAnswer,
+      timeSpent,
       marksObtained: qScore
     });
   }
@@ -160,4 +166,17 @@ Return ONLY a single number representing the marks awarded (e.g., 2.5, 0, ${maxM
   }
 
   redirect('/dashboard/analysis');
+}
+
+export async function toggleBookmarkAction(answerId: string, isBookmarked: boolean) {
+  const user = await getUser();
+  if (!user) return { error: 'Unauthorized' };
+  
+  await prisma.submissionAnswer.update({
+    where: { id: answerId },
+    data: { isBookmarked }
+  });
+  revalidatePath('/dashboard/analysis');
+  revalidatePath('/dashboard');
+  return { success: true };
 }

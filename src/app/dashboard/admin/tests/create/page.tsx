@@ -34,6 +34,7 @@ export default function CreateTestPage() {
   const [endTime, setEndTime] = useState('');
   const [upcomingDays, setUpcomingDays] = useState('10');
   const [fullscreenChances, setFullscreenChances] = useState('5');
+  const [shuffleQuestions, setShuffleQuestions] = useState(false);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [saving, setSaving] = useState(false);
   const [availableBatches, setAvailableBatches] = useState<any[]>([]);
@@ -106,6 +107,7 @@ export default function CreateTestPage() {
     formData.append('endTime', endTime);
     formData.append('upcomingDays', upcomingDays);
     formData.append('fullscreenChances', fullscreenChances);
+    formData.append('shuffleQuestions', shuffleQuestions ? 'true' : 'false');
     formData.append('batchIds', JSON.stringify(selectedBatches));
 
     const questionsPayload = questions.map((q) => {
@@ -169,6 +171,21 @@ export default function CreateTestPage() {
             </label>
             <input type="number" min="1" value={fullscreenChances} onChange={e => setFullscreenChances(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white" />
             <p className="text-xs text-gray-400 mt-1">Default: 5 exits. Test auto-submits if user exceeds this limit.</p>
+          </div>
+          <div className="flex items-center gap-3 bg-gray-50 p-4 rounded-lg border border-gray-200">
+            <input 
+              type="checkbox" 
+              id="shuffleQuestions"
+              checked={shuffleQuestions}
+              onChange={(e) => setShuffleQuestions(e.target.checked)}
+              className="w-5 h-5 text-blue-600 rounded border-gray-300"
+            />
+            <div>
+              <label htmlFor="shuffleQuestions" className="block text-sm font-medium text-gray-800">
+                Shuffle Questions
+              </label>
+              <p className="text-xs text-gray-500">If checked, questions will be presented in a random order for each student.</p>
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Assign to Batches (Optional)</label>

@@ -3,6 +3,7 @@ import { getUser } from '@/lib/auth';
 import { logoutAction } from '@/app/actions/auth';
 import { redirect } from 'next/navigation';
 import DashboardLayoutWrapper from './DashboardLayoutWrapper';
+import SingleTabEnforcer from '@/components/SingleTabEnforcer';
 
 export default async function DashboardLayout({
   children,
@@ -107,6 +108,7 @@ export default async function DashboardLayout({
 
   return (
     <DashboardLayoutWrapper sidebar={sidebar} header={header}>
+      <SingleTabEnforcer role={user.role} />
       {children}
     </DashboardLayoutWrapper>
   );

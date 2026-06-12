@@ -51,6 +51,7 @@ export interface ExamForTestEngine {
   title: string;
   durationMinutes: number;
   fullscreenChances: number;
+  shuffleQuestions?: boolean;
   questions: ExamQuestion[];
 }
 

@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { examId, timeLeft, answers, status, isExitFullscreen } = body;
+    const { examId, timeLeft, answers, questionTimes, status, isExitFullscreen } = body;
 
     if (!examId) {
       return NextResponse.json({ error: 'Missing examId' }, { status: 400 });
@@ -113,6 +113,7 @@ export async function POST(req: Request) {
         selectedOptionIds,
         numericAnswer,
         textAnswer,
+        timeSpent: questionTimes?.[qId] || null
       });
     }
 

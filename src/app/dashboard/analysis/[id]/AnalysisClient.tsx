@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
-import { CheckCircle2, XCircle, Bookmark, Clock, User, ChevronLeft, ChevronRight, BarChart3, List, Trophy, Percent } from 'lucide-react';
+import React, { useState, useTransition } from 'react';
+import { CheckCircle2, XCircle, Bookmark, BookmarkCheck, Clock, User, ChevronLeft, ChevronRight, BarChart3, List, Trophy, Percent, Loader2 } from 'lucide-react';
+import { toggleBookmarkAction } from '@/app/actions/student';
 
 export default function AnalysisClient({ 
   submission, 
@@ -18,6 +19,18 @@ export default function AnalysisClient({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showSolution, setShowSolution] = useState(false);
   const [showAllSolutions, setShowAllSolutions] = useState(false);
+  const [isPendingBookmark, startTransition] = useTransition();
+
+  const handleBookmarkToggle = () => {
+    if (!currentAns) return;
+    startTransition(async () => {
+      const res = await toggleBookmarkAction(currentAns.id, !currentAns.isBookmarked);
+      if (res.success) {
+        // Optimistically update the UI by mutating the local object (in a real app, use SWR/React Query or refresh)
+        currentAns.isBookmarked = !currentAns.isBookmarked;
+      }
+    });
+  };
 
   const questions = submission.exam.questions || [];
   const currentQuestion = questions[currentIndex];
@@ -147,12 +160,17 @@ export default function AnalysisClient({
             </div>
             
             <div className="flex items-center gap-4 text-sm text-gray-600">
-              <button className="flex items-center gap-1 hover:text-blue-600 transition">
-                <Bookmark className="w-4 h-4" /> Bookmark
+              <button 
+                onClick={handleBookmarkToggle}
+                disabled={isPendingBookmark || !currentAns}
+                className={`flex items-center gap-1 transition disabled:opacity-50 ${currentAns?.isBookmarked ? 'text-blue-600 font-bold' : 'hover:text-blue-600'}`}
+              >
+                {isPendingBookmark ? <Loader2 className="w-4 h-4 animate-spin" /> : currentAns?.isBookmarked ? <BookmarkCheck className="w-4 h-4 fill-current" /> : <Bookmark className="w-4 h-4" />}
+                {currentAns?.isBookmarked ? 'Bookmarked' : 'Bookmark'}
               </button>
               <div className="flex items-center gap-1">
                 <Clock className="w-4 h-4" /> 
-                <span className="font-medium">Time spent: {formatTime(timeSpentSeconds)}</span>
+                <span className="font-medium">Question Time: {currentAns?.timeSpent ? formatTime(currentAns.timeSpent) : '0:00'}</span>
               </div>
             </div>
           </div>
