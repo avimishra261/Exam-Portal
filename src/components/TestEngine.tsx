@@ -201,6 +201,18 @@ export default function TestEngine({
         await document.documentElement.requestFullscreen();
       }
       setStarted(true);
+      // Immediately register the session so live monitoring works
+      fetch('/api/tests/pause', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          examId: exam.id,
+          timeLeft: initialTimeLeft ?? (exam.durationMinutes * 60),
+          answers,
+          status: 'IN_PROGRESS',
+          isExitFullscreen: false
+        })
+      }).catch(console.error);
     } catch (e) {
       alert("Fullscreen is required to start the test. Please allow fullscreen permissions.");
     }

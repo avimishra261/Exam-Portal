@@ -69,6 +69,17 @@ export default function AnalysisClient({
 
   if (!currentQuestion) return <div>No questions found for this test.</div>;
 
+  const totalDurationSeconds = (submission.exam?.durationMinutes || 0) * 60;
+  const timeSpentSeconds = submission.timeLeft !== undefined && submission.timeLeft !== null
+    ? Math.max(0, totalDurationSeconds - submission.timeLeft)
+    : totalDurationSeconds; // If no timeLeft, assume full duration was used
+    
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m.toString().padStart(2, '0')} min : ${s.toString().padStart(2, '0')} sec`;
+  };
+
   return (
     <div className="flex flex-col h-full font-sans">
       {/* TOP HEADER */}
@@ -141,7 +152,7 @@ export default function AnalysisClient({
               </button>
               <div className="flex items-center gap-1">
                 <Clock className="w-4 h-4" /> 
-                <span className="font-medium">Time spent: -- min : -- sec</span>
+                <span className="font-medium">Time spent: {formatTime(timeSpentSeconds)}</span>
               </div>
             </div>
           </div>
@@ -343,7 +354,7 @@ export default function AnalysisClient({
         <div className="w-80 border-l border-gray-200 bg-[#f8f9fa] flex flex-col shrink-0">
           <div className="p-4 border-b border-gray-200 text-center bg-white">
             <p className="text-sm text-gray-500 font-medium mb-1">Time Spent on Test</p>
-            <p className="text-2xl font-bold text-gray-800">-- min : -- sec</p>
+            <p className="text-2xl font-bold text-gray-800">{formatTime(timeSpentSeconds)}</p>
           </div>
 
           <div className="p-4 flex-1 overflow-y-auto">
